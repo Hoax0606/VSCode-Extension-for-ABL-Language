@@ -1,0 +1,88 @@
+{
+  "name": "ABL Dark",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "ablMap": "#869cff",
+    "ablFunc": "#dafc44",
+    "ablLogic": "#ff9d00"
+  },
+  "colors": {},
+  "tokenColors": [
+    {
+    "name": "ABL Comment",
+    "scope": [
+        "comment",
+        "comment.line",
+        "comment.line.number-sign"
+    ],
+    "settings": {
+        "foreground": "#6A9955",
+        "fontStyle": "italic"
+    }
+    },
+    {
+        "scope": "constant.language.boolean.abl",
+        "settings": { "foreground": "#7CFF8A" }
+    },
+    {
+        "scope": "constant.language.nullish.abl",
+        "settings": { "foreground": "#FF9DFF" }
+    },
+    {
+      "name": "ABL Numeric",
+      "scope": ["constant.numeric.abl"],
+      "settings": { "foreground": "#68ffeb" }
+    },
+    {
+      "name": "ABL Index",
+      "scope": ["variable.other.index.abl"],
+      "settings": { "foreground": "#e3aafd" }
+    },
+    {
+      "name": "ABL Control Keywords",
+      "scope": ["keyword.control"],
+      "settings": { "foreground": "#ffb2ff" }
+    },
+    {
+      "name": "ABL Get Set",
+      "scope": ["keyword.other.assignment"],
+      "settings": { "foreground": "#edff86" }
+    },
+    {
+      "name": "ABL Types",
+      "scope": ["storage.type"],
+      "settings": { "foreground": "#869cff" }
+    },
+    {
+      "name": "ABL Map",
+      "scope": ["support.class.map"],
+      "settings": { "foreground": "#869cff" }
+    },
+    {
+      "name": "ABL Writer",
+      "scope": ["support.function.writer"],
+      "settings": { "foreground": "#ff7474" }
+    },
+    {
+      "name": "ABL Token Access",
+      "scope": ["support.class.token", "support.class.meta"],
+      "settings": { "foreground": "#00fc0d" }
+    },
+    {
+      "name": "ABL Token/Meta Properties",
+      "scope": ["variable.other.property.token", "variable.other.property.meta"],
+      "settings": { "foreground": "#dafc44" }
+    },
+    {
+      "name": "ABL Reference Operator",
+      "scope": ["keyword.operator.reference"],
+      "settings": { "foreground": "#dafc44" }
+    },
+    {
+      "name": "ABL General Functions",
+      "scope": ["support.function"],
+      "settings": { "foreground": "#dafc44" }
+    }
+  ]
+}
