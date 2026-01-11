@@ -4,30 +4,26 @@
   "semanticHighlighting": true,
   "semanticTokenColors": {
     "ablMap": "#869cff",
-    "ablFunc": "#dafc44",
-    "ablLogic": "#ff9d00"
+    "ablFunc": "#f1fa8c",
+    "ablLogic": "#f8c57c",
+    "ablFunctionDecl": "#957DAD",
+    "ablFunctionEnd": "#957DAD",
+    "ablFunctionCall": "#8be9fd"
   },
   "colors": {},
   "tokenColors": [
     {
-    "name": "ABL Comment",
-    "scope": [
-        "comment",
-        "comment.line",
-        "comment.line.number-sign"
-    ],
-    "settings": {
-        "foreground": "#6A9955",
-        "fontStyle": "italic"
-    }
+      "name": "ABL Comment",
+      "scope": ["comment", "comment.line", "comment.line.number-sign"],
+      "settings": { "foreground": "#6A9955", "fontStyle": "italic" }
     },
     {
-        "scope": "constant.language.boolean.abl",
-        "settings": { "foreground": "#7CFF8A" }
+      "scope": "constant.language.boolean.abl",
+      "settings": { "foreground": "#50fa7b" }
     },
     {
-        "scope": "constant.language.nullish.abl",
-        "settings": { "foreground": "#FF9DFF" }
+      "scope": "constant.language.nullish.abl",
+      "settings": { "foreground": "#50fa7b" }
     },
     {
       "name": "ABL Numeric",
@@ -37,52 +33,47 @@
     {
       "name": "ABL Index",
       "scope": ["variable.other.index.abl"],
-      "settings": { "foreground": "#e3aafd" }
+      "settings": { "foreground": "#bd93f9" }
     },
     {
       "name": "ABL Control Keywords",
       "scope": ["keyword.control"],
-      "settings": { "foreground": "#ffb2ff" }
+      "settings": { "foreground": "#ff79c6" }
     },
     {
       "name": "ABL Get Set",
       "scope": ["keyword.other.assignment"],
-      "settings": { "foreground": "#edff86" }
+      "settings": { "foreground": "#f1fa8c" }
     },
     {
       "name": "ABL Types",
       "scope": ["storage.type"],
-      "settings": { "foreground": "#869cff" }
+      "settings": { "foreground": "#64BDB4" }
     },
     {
       "name": "ABL Map",
       "scope": ["support.class.map"],
-      "settings": { "foreground": "#869cff" }
+      "settings": { "foreground": "#f1fa8c" }
     },
     {
       "name": "ABL Writer",
       "scope": ["support.function.writer"],
-      "settings": { "foreground": "#ff7474" }
+      "settings": { "foreground": "#ff5555" }
     },
     {
       "name": "ABL Token Access",
       "scope": ["support.class.token", "support.class.meta"],
-      "settings": { "foreground": "#00fc0d" }
+      "settings": { "foreground": "#D69D43" }
     },
     {
-      "name": "ABL Token/Meta Properties",
-      "scope": ["variable.other.property.token", "variable.other.property.meta"],
-      "settings": { "foreground": "#dafc44" }
-    },
-    {
-      "name": "ABL Reference Operator",
-      "scope": ["keyword.operator.reference"],
-      "settings": { "foreground": "#dafc44" }
+      "name": "ABL Token/Meta Properties/ABL Reference Operator",
+      "scope": ["variable.other.property.token", "variable.other.property.meta", "keyword.operator.reference"],
+      "settings": { "foreground": "#FF7F50" }
     },
     {
       "name": "ABL General Functions",
       "scope": ["support.function"],
-      "settings": { "foreground": "#dafc44" }
+      "settings": { "foreground": "#f1fa8c" }
     }
   ]
 }

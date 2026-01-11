@@ -9,7 +9,7 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [  
+  "activationEvents": [
     "onLanguage:abl"
   ],
   "main": "./out/extension.js",
@@ -40,6 +40,58 @@
         "label": "ABL Dark",
         "uiTheme": "vs-dark",
         "path": "./themes/abl-dark-color-theme.json"
+      }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "ablMap",
+        "description": "ABL Map context token",
+        "superType": "function"
+      },
+      {
+        "id": "ablFunc",
+        "description": "ABL Function context token",
+        "superType": "function"
+      },
+      {
+        "id": "ablLogic",
+        "description": "ABL logic operator token",
+        "superType": "operator"
+      },
+      {
+        "id": "ablData",
+        "description": "ABL meta data token (^Data/^Class)",
+        "superType": "variable"
+      },
+      {
+        "id": "ablFunctionDecl",
+        "description": "ABL user function declaration",
+        "superType": "function"
+      },
+      {
+        "id": "ablFunctionEnd",
+        "description": "ABL user function end statement",
+        "superType": "keyword"
+      },
+      {
+        "id": "ablFunctionCall",
+        "description": "ABL user function call",
+        "superType": "function"
+      }
+    ],
+
+    "semanticTokenScopes": [
+      {
+        "language": "abl",
+        "scopes": {
+          "ablMap": ["entity.name.function"],
+          "ablFunc": ["entity.name.function"],
+          "ablLogic": ["keyword.operator"],
+          "ablData": ["variable.other"],
+          "ablFunctionDecl": ["entity.name.function"],
+          "ablFunctionEnd": ["keyword.control"],
+          "ablFunctionCall": ["entity.name.function.call"]
+        }
       }
     ]
   },

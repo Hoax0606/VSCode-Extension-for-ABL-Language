@@ -18,18 +18,34 @@
   ],
 
   "indentationRules": {
-    "increaseIndentPattern": "^\\s*@(If\\b.*@Then\\b|For\\b|Else\\s+If\\b.*@Then\\b|Else\\b)\\b.*$",
-    "decreaseIndentPattern": "^\\s*@(End\\s+(If|For)\\b|Else\\s+If\\b|Else\\b)\\b.*$"
+    "increaseIndentPattern": "^\\s*@((If\\b.*@Then\\b)|(Else\\s+If\\b.*@Then\\b)|(Else\\b)|(For\\b)|(Function\\b))\\b.*$",
+    "decreaseIndentPattern": "^\\s*@((End\\s+(If|For|Function)\\b)|(Else\\s+If\\b.*@Then\\b)|(Else\\b))\\b.*$"
   },
 
   "onEnterRules": [
     {
-      "beforeText": "^\\s*@Else\\s+If\\b.*$",
-      "action": { "indentAction": "IndentOutdent" }
+      "beforeText": "^\\s*@If\\b.*@Then\\b.*$",
+      "action": { "indentAction": "indent" }
+    },
+    {
+      "beforeText": "^\\s*@Else\\s+If\\b.*@Then\\b.*$",
+      "action": { "indentAction": "indentOutdent" }
     },
     {
       "beforeText": "^\\s*@Else\\b.*$",
-      "action": { "indentAction": "IndentOutdent" }
+      "action": { "indentAction": "indentOutdent" }
+    },
+    {
+      "beforeText": "^\\s*@For\\b.*$",
+      "action": { "indentAction": "indent" }
+    },
+    {
+      "beforeText": "^\\s*@Function\\b.*$",
+      "action": { "indentAction": "indent" }
+    },
+    {
+      "beforeText": "^\\s*@End\\s+(If|For|Function)\\b.*$",
+      "action": { "indentAction": "outdent" }
     }
   ]
 }

@@ -181,7 +181,7 @@
     "patterns": [
         {
         "name": "support.class.token",
-        "match": "\\^Data\\.(?:Item|Count!)(?=\\[)"
+        "match": "\\^Data\\.(?:Count|Item)(?=\\[|!)"
         },
         {
         "name": "support.class.token",
@@ -230,8 +230,6 @@
               "name": "support.function",
               "match": "(?<=!)@"
             },
-
-            { "include": "#strings" },
             { "include": "#numbers" },
             { "include": "#index" },
             { "include": "#class" },
