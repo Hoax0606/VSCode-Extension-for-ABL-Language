@@ -1,71 +1,114 @@
-# abl-language README
+# ABL Language Support for VS Code
 
-This is the README for your extension "abl-language". After writing up a brief description, we recommend including the following sections.
+Value & Force SmartBridge에서 사용하는  
+**ABL (Analysis & Basis Language)** 를  
+Visual Studio Code 환경에서 효율적으로 작성하기 위한 Language Support Extension입니다.
 
-## Features
-
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+본 Extension은 단순 문법 하이라이팅을 넘어  
+**자동 완성, Hover, 정적 분석, 코드 구조화**까지 지원합니다.
 
 ---
 
-## Following extension guidelines
+## 📌 주요 특징
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+- ABL 전용 문법 하이라이팅 (TextMate + Semantic Tokens)
+- 컨텍스트 인식 자동 완성 (IntelliSense)
+- Hover 도움말 (Completion 문서 재사용)
+- 자동 들여쓰기 / 내어쓰기
+- 코드 접기 (Folding)
+- Outline (문서 구조 보기)
+- 정적 분석 (미선언 변수, 스코프 오류 등)
+- 사용자 정의 함수 지원
+- Go to Definition / References / Rename 지원
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+---
 
-## Working with Markdown
+## 📂 지원 파일 확장자
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+- `.abl`
+- `.rule`
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+---
 
-## For more information
+## ✨ Syntax Highlighting
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+### TextMate Grammar
+- 제어문, 키워드, 연산자
+- Writer 함수(@AddLine, @InsertLine 등)
+- 토큰 접근 문법(^Data, ^Class)
 
-**Enjoy!**
+### Semantic Tokens
+- 함수 호출 범위 전체 색상 유지
+- 사용자 정의 함수 선언 / 호출 색상 분리
+- Map 계열 함수(@Map.Get / @Map.Set)
+- 논리 연산자(+, =, 비교 연산자) 조건부 강조
+
+---
+
+## ✍️ 자동 들여쓰기 / 내어쓰기
+
+지원 문법:
+- `@If / @Else If / @Else / @End If`
+- `@For / @End For`
+- `@Function / @End Function`
+
+특징:
+- Snippet 선택 시에도 Indent / Outdent 정상 동작
+- 중첩 구조 안정적 처리
+- `@Else`, `@Else If` → Outdent + Indent
+- `@End *` → 자동 Outdent
+
+---
+
+## ⚡ Snippet & IntelliSense
+
+### `@` 트리거
+- `@Function`, `@End Function`
+- 제어문 / 반복문
+- 내장 함수
+- Writer 함수
+
+### 컨텍스트 기반 자동 완성
+- `@Map.` → `Get / Set / Clear`
+- `^Data.` → `Count! / Item[].`
+- `^Data.Item[].` → `Name! / Type! / Pretab!` 등
+- `StringTokenInfo[].` → 속성 자동 완성
+
+---
+
+## 🛈 Hover (도움말)
+
+Completion에서 정의한 설명을 **Hover에서도 재사용**
+
+지원 대상:
+- 내장 함수 (`@LowerCase`, `@Replace` 등)
+- Writer 함수 (`@AddLine`, `@Data` 등)
+- `^Data`, `^Class`
+- `^Data.Item[].Name!`, `Pretab!` 등 하위 속성
+
+---
+
+## 🧩 사용자 정의 함수
+
+- `@Function ~ @End Function` 구조 인식
+- 선언 / 종료 키워드 색상 분리
+- **선언 이전 호출도 정상 인식**
+- 사용자 정의 함수 호출 색상 적용
+
+---
+
+## 🧪 정적 분석 (Diagnostics)
+
+### 제어문 오류
+- `@If / @Else If` 에서 `@Then` 누락
+- `@End If`, `@End For` 미매칭
+
+### 변수 스코프 검사
+- 로컬 변수는 `@Function ~ @End Function` 내부에서만 사용 가능
+- 함수 외부에서 `@Get / @Set` 사용 시 오류
+
+### 변수 선언 규칙
+- 변수 선언은 `@String` 또는 `@Int` 만 허용
+- 동일 변수 중복 선언 불가
+- 선언과 동시에 초기화 불가
+- 미선언 변수 사용 시 오류 표시
