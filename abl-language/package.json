@@ -3,6 +3,15 @@
   "displayName": "abl-language",
   "description": "ABL language support for VS Code",
   "version": "0.0.1",
+  "publisher": "hoax0606",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hoax0606/VSCode-Extension-for-ABL-Language.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hoax0606/VSCode-Extension-for-ABL-Language/issues"
+  },
+  "homepage": "https://github.com/Hoax0606/VSCode-Extension-for-ABL-Language#readme",
   "engines": {
     "vscode": "^1.107.0"
   },
