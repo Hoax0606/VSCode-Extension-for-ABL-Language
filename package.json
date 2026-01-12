@@ -4,6 +4,8 @@
   "description": "ABL language support for VS Code",
   "version": "0.0.1",
   "publisher": "hoax0606",
+  "license": "MIT",
+  "readme": "README.md",
   "repository": {
     "type": "git",
     "url": "https://github.com/Hoax0606/VSCode-Extension-for-ABL-Language.git"
