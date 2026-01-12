@@ -1,3 +1,5 @@
+![ABL Extension Preview](images/VSCode_ABL_Extension_Icon_rounded_square.png)
+
 # ABL Language Support for VS Code
 
 Value & Force SmartBridge에서 사용하는  

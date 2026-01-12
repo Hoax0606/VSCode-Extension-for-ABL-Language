@@ -4,6 +4,7 @@
   "description": "ABL language support for VS Code",
   "version": "0.0.1",
   "publisher": "hoax0606",
+  "icon": "images/VSCode_ABL_Extension_Icon_rounded_square.png",
   "license": "MIT",
   "readme": "README.md",
   "repository": {
