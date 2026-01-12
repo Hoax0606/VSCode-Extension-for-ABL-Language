@@ -69,7 +69,7 @@
     {
       "name": "ABL Token/Meta Properties/ABL Reference Operator",
       "scope": ["variable.other.property.token", "variable.other.property.meta", "keyword.operator.reference"],
-      "settings": { "foreground": "#FF7F50" }
+      "settings": { "foreground": "#D69D43" }
     },
     {
       "name": "ABL General Functions",

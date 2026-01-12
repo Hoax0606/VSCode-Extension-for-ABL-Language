@@ -162,20 +162,42 @@ function splitByAndOrTopLevel(s: string): string[] {
 
     if (ch === "'") {
       const next = s[i + 1];
+      const next2 = s[i + 2];
 
-      if (inQ) {
-        if (next === "'") {
-          i++;
+      if (!inQ) {
+        // ✅ DSL 특수 케이스: '''  ->  문자열 값이 단일 따옴표(')인 리터럴 (닫힌 것으로 처리)
+        if (next === "'" && next2 === "'") {
+          i += 2;          // 세 개의 따옴표 소비
+          // inQ는 false 유지 (이미 닫힌 리터럴로 취급)
           continue;
         }
-        inQ = false;
+
+        // '' (빈 문자열) 또는 외부에서의 '' 패턴은 그냥 소비
+        if (next === "'") {
+          i++;             // 두 개의 따옴표 소비
+          continue;
+        }
+
+        // 일반 케이스: 문자열 시작
+        inQ = true;
         continue;
       } else {
+        // 문자열 내부 처리
         if (next === "'") {
-          i++;
+          // ✅ 문자열 내부에서 ''' 를 만나면: ''(따옴표 문자) + '(닫기) 로 취급
+          if (next2 === "'") {
+            i += 2;        // ''' 소비
+            inQ = false;   // 닫힘
+            continue;
+          }
+
+          // '' -> 문자열 내부의 따옴표 문자로 이스케이프
+          i++;             // '' 소비
           continue;
         }
-        inQ = true;
+
+        // 일반 케이스: 문자열 종료
+        inQ = false;
         continue;
       }
     }
@@ -189,15 +211,20 @@ function splitByAndOrTopLevel(s: string): string[] {
       if (depth > 0) depth--;
       continue;
     }
-    if (depth !== 0) continue;
 
-    if (s.startsWith('And', i) && !isIdent(s[i - 1] ?? '') && !isIdent(s[i + 3] ?? '')) {
+    if (depth !== 0) continue; // ✅ (기존 설계대로 "괄호 밖"에서만 AND/OR 분리)
+
+    const w3 = s.slice(i, i + 3).toLowerCase();
+    const w2 = s.slice(i, i + 2).toLowerCase();
+
+    if (w3 === 'and' && !isIdent(s[i - 1] ?? '') && !isIdent(s[i + 3] ?? '')) {
       out.push(s.slice(start, i));
       start = i + 3;
       i += 2;
       continue;
     }
-    if (s.startsWith('Or', i) && !isIdent(s[i - 1] ?? '') && !isIdent(s[i + 2] ?? '')) {
+
+    if (w2 === 'or' && !isIdent(s[i - 1] ?? '') && !isIdent(s[i + 2] ?? '')) {
       out.push(s.slice(start, i));
       start = i + 2;
       i += 1;
@@ -207,6 +234,51 @@ function splitByAndOrTopLevel(s: string): string[] {
 
   out.push(s.slice(start));
   return out;
+}
+
+function hasUnclosedSingleQuoteABL(s: string): boolean {
+  let inQ = false;
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch !== "'") continue;
+
+    const next = s[i + 1];
+    const next2 = s[i + 2];
+
+    if (!inQ) {
+      // ''' : 단일 따옴표 문자 리터럴(정상)
+      if (next === "'" && next2 === "'") {
+        i += 2;
+        continue;
+      }
+      // '' : 빈 문자열(정상) 또는 단순 2연속(정상)
+      if (next === "'") {
+        i += 1;
+        continue;
+      }
+      // 문자열 시작
+      inQ = true;
+      continue;
+    } else {
+      // 문자열 내부에서 '' 는 escape 따옴표 문자
+      if (next === "'") {
+        // ''' : ''(따옴표 문자) + '(닫기)
+        if (next2 === "'") {
+          i += 2;
+          inQ = false;
+          continue;
+        }
+        i += 1;
+        continue;
+      }
+      // 문자열 종료
+      inQ = false;
+      continue;
+    }
+  }
+
+  return inQ;
 }
 
 function splitCompareTopLevel(expr: string): { left: string; op: string; right: string } | null {
@@ -2856,15 +2928,30 @@ function provideIfDiagnostics(doc: vscode.TextDocument) {
       condAll = condAll.replace(/^\s*@If\b/i, '');
       condAll = condAll.replace(/^\s*@Else\s+If\b/i, '');
 
+      // ✅ ABL 문자열 따옴표 미종료(오탐 최소): 조건식 전체를 1회 스캔
+      if (hasUnclosedSingleQuoteABL(condAll)) {
+        diagnostics.push(
+          new vscode.Diagnostic(
+            new vscode.Range(line, 0, line, text.length),
+            "비교식 내 문자열(')이 닫히지 않았습니다.",
+            vscode.DiagnosticSeverity.Error
+          )
+        );
+
+        if (isIf) ifStack.push(line);
+        continue;
+      }
+
       const parts = splitByAndOrTopLevel(condAll);
 
       for (const p of parts) {
         const cmp = splitCompareTopLevel(p);
         if (!cmp) continue;
 
-        const left = cmp.left;
-        const right = cmp.right;
+        //const left = cmp.left;
+        //const right = cmp.right;
 
+        /*
         if (!isQuotedOperandOk(left) || !isQuotedOperandOk(right)) {
           diagnostics.push(
             new vscode.Diagnostic(
@@ -2875,6 +2962,7 @@ function provideIfDiagnostics(doc: vscode.TextDocument) {
           );
           break;
         }
+        */
       }
 
       if (isIf) ifStack.push(line);
