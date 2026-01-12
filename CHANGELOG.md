@@ -14,3 +14,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Fixed
 - Undeclared variable diagnostics: allow @Set <FunctionName> inside function
 - Undeclared variable diagnostics: allow @Set <VarName> outside of function to not display error if it is declared
+
+## [0.0.3] - 2026-01-12
+### Fixed
+- Variables used as function parameters to not show error
+- fixed '' in If

@@ -165,6 +165,15 @@ function splitByAndOrTopLevel(s: string): string[] {
       const next2 = s[i + 2];
 
       if (!inQ) {
+        // ✅ DSL 특수 케이스: '@ 문자 리터럴은 "'@" 로 쓰고(닫는 ' 없음),
+        // 바로 뒤가 구분자(, ) 공백 등)면 정상으로 취급
+        if (next === '@') {
+          const after = s[i + 2] ?? '';
+          if (after === ',' || after === ')' || after === ' ' || after === '\t' || after === '') {
+            i += 1; // '@'까지 소비
+            continue; // inQ는 false 유지
+          }
+        }
         // ✅ DSL 특수 케이스: '''  ->  문자열 값이 단일 따옴표(')인 리터럴 (닫힌 것으로 처리)
         if (next === "'" && next2 === "'") {
           i += 2;          // 세 개의 따옴표 소비
@@ -247,6 +256,14 @@ function hasUnclosedSingleQuoteABL(s: string): boolean {
     const next2 = s[i + 2];
 
     if (!inQ) {
+      // ✅ DSL 특수 케이스: "'@" 정상 처리
+      if (next === '@') {
+        const after = s[i + 2] ?? '';
+        if (after === ',' || after === ')' || after === ' ' || after === '\t' || after === '') {
+          i += 1;
+          continue;
+        }
+      }
       // ''' : 단일 따옴표 문자 리터럴(정상)
       if (next === "'" && next2 === "'") {
         i += 2;
@@ -2672,6 +2689,8 @@ const fnEndRe = /^\s*@End\s+Function\b/i;
 
 // Function 이름 저장
 const fnNameRe = /^\s*@Function\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)/i;
+// @Function ASDF(p1, p2) 형태에서 파라미터 덩어리 추출
+const fnParamsRe = /^\s*@Function\b.*?\(([^)]*)\)/i;
 
 // 주석 라인
 function isCommentLine2(text: string) {
@@ -2798,12 +2817,29 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
     if (fm) {
       const funcName = fm[1];
 
-      // buildFuncLineMap상 @Function 라인은 funcId가 -1이 아니어야 정상
       if (funcId !== -1) {
-        getLocalSet(funcId).add(funcName);
+        const local = getLocalSet(funcId);
+
+        // (1) return 변수(함수명) 등록
+        local.add(funcName);
+
+        // (2) 파라미터 등록
+        const pm = fnParamsRe.exec(text);
+        if (pm) {
+          const rawParams = pm[1].trim(); // "p1, p2, ..."
+          if (rawParams.length > 0) {
+            for (const token of rawParams.split(',')) {
+              const name = token.trim();
+              // 식별자만 등록 (혹시 공백/빈값 방지)
+              if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+                local.add(name);
+              }
+            }
+          }
+        }
       }
 
-      // 함수 선언 라인에서는 추가 사용검사 불필요
+      // 함수 선언 라인은 사용검사 스킵
       continue;
     }
 
