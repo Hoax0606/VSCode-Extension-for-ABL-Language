@@ -7,3 +7,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 - Initial release
+
+## [0.0.2] - 2026-01-12
+### Added
+- Function return name highlighting (ablReturn)
+### Fixed
+- Undeclared variable diagnostics: allow @Set <FunctionName> inside function
+- Undeclared variable diagnostics: allow @Set <VarName> outside of function to not display error if it is declared

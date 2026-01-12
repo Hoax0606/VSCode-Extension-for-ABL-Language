@@ -11,7 +11,7 @@ import * as vscode from 'vscode';
  * - ablFunctionCall : (미등록) @functionName (사용자 정의 함수 호출로 취급) + 그 호출에 속한 모든 @
  */
 const legend = new vscode.SemanticTokensLegend(
-  ['ablMap', 'ablFunc', 'ablLogic', 'ablData', 'ablFunctionDecl', 'ablFunctionEnd', 'ablFunctionCall'],
+  ['ablMap', 'ablFunc', 'ablLogic', 'ablData', 'ablFunctionDecl', 'ablFunctionEnd', 'ablFunctionCall', 'ablReturn'],
   []
 );
 
@@ -27,7 +27,8 @@ type TokenKind =
   | 'ablData'
   | 'ablFunctionDecl'
   | 'ablFunctionEnd'
-  | 'ablFunctionCall';
+  | 'ablFunctionCall'
+  | 'ablReturn';
 
 /**
  * ✅ 함수 목록 단일 소스
@@ -2228,9 +2229,43 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
 
   userFunctions.clear();
 
+  const lineToFunc = buildFuncLineMap(doc);
+  const funcNameById = buildFuncNameMap(doc);
+
   for (let line = 0; line < doc.lineCount; line++) {
     const lineText = doc.lineAt(line).text;
     const baseOffset = doc.offsetAt(new vscode.Position(line, 0));
+
+    const funcId = lineToFunc[line];
+    const currentFuncName = funcId >= 0 ? funcNameById.get(funcId) : undefined;
+
+    // 문자열 내부는 제외하고 검사(진단과 동일한 전략)
+    const scanText = stripSingleQuoted2(lineText);
+
+    // ✅ 함수 내부에서 @Set <함수명> / @Get(<함수명>) 만 ablReturn로 칠함
+    if (currentFuncName) {
+      // @Set ASDF
+      const setRe = /@Set\s+([A-Za-z_][A-Za-z0-9_]*)\b/g;
+      for (let m; (m = setRe.exec(scanText)); ) {
+        const name = m[1];
+        if (name === currentFuncName) {
+          const start = m.index + m[0].lastIndexOf(name);
+          pushToken(builder, doc, baseOffset + start, name.length, 'ablReturn');
+        }
+      }
+
+      // @Get(ASDF)
+      const getRe = /@Get\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/g;
+      for (let m; (m = getRe.exec(scanText)); ) {
+        const name = m[1];
+        if (name === currentFuncName) {
+          const whole = m[0];
+          const namePosInWhole = whole.indexOf(name);
+          const start = m.index + namePosInWhole;
+          pushToken(builder, doc, baseOffset + start, name.length, 'ablReturn');
+        }
+      }
+    }
 
     const stack: Frame[] = [];
     let ifMode = false;
@@ -2260,7 +2295,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
           const nameIdxInFull = fullMatched.indexOf(fn);
           const fnPos = i + nameIdxInFull;
 
-          pushToken(builder, doc, baseOffset + fnPos, fn.length, 'ablFunctionDecl');
+          pushToken(builder, doc, baseOffset + fnPos, fn.length, 'ablReturn');
         }
       }
 
@@ -2542,277 +2577,233 @@ function isSimpleIdent(s: string): boolean {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(s);
 }
 
-function findFunctionBlocksRanges(doc: vscode.TextDocument): Array<{ startLine: number; endLine: number; name: string | null }>{
-  const blocks: Array<{ startLine: number; endLine: number; name: string | null }> = [];
-  const stack: Array<{ startLine: number; name: string | null }> = [];
+/* ============================================================
+ * Undeclared variable diagnostics (Global vs Function scope)
+ * 규칙:
+ *  - Function 밖: 전역 선언만 유효
+ *  - Function 안: (전역 선언 + 해당 Function의 로컬 선언) 유효
+ *  - 로컬 선언 변수는 Function 밖에서 쓰이면 오류
+ * ============================================================ */
 
-  const startRe = /^\s*@Function\b(?:\s+([A-Za-z_][A-Za-z0-9_]*))?/i;
+const varDiag = vscode.languages.createDiagnosticCollection('abl-vars');
 
-  for (let line = 0; line < doc.lineCount; line++) {
-    const text = doc.lineAt(line).text;
-    if (isCommentLine(text)) continue;
+// 선언 패턴 (전역/로컬 공통)
+const declRe = /^\s*@(String|Int)\s+([A-Za-z_][A-Za-z0-9_]*)\b/i;
 
-    const m = startRe.exec(text);
-    if (m) {
-      const name = (m[1] ?? null);
-      stack.push({ startLine: line, name });
-      continue;
-    }
+// 사용 패턴 (최소한으로: @Set x , @Get(x))
+const setUseRe = /@Set\s+([A-Za-z_][A-Za-z0-9_]*)\b/g;
+const getUseRe = /@Get\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/g;
 
-    if (/^\s*@End\s+Function\b/i.test(text)) {
-      const start = stack.pop();
-      if (start) {
-        blocks.push({ startLine: start.startLine, endLine: line, name: start.name });
-      }
-      continue;
-    }
-  }
+// Function 블록 시작/끝 (너희 룰 파일 기준으로 맞춰둠)
+const fnStartRe = /^\s*@Function\b/i;
+const fnEndRe = /^\s*@End\s+Function\b/i;
 
-  // If unclosed, treat until EOF
-  while (stack.length > 0) {
-    const start = stack.pop()!;
-    blocks.push({ startLine: start.startLine, endLine: doc.lineCount - 1, name: start.name });
-  }
+// Function 이름 저장
+const fnNameRe = /^\s*@Function\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)/i;
 
-  return blocks;
+// 주석 라인
+function isCommentLine2(text: string) {
+  return /^[ \t]*#/.test(text);
 }
 
-function collectDeclaredVarsInBlock(
-  doc: vscode.TextDocument,
-  startLine: number,
-  endLine: number,
-  diagnostics: vscode.Diagnostic[]
-): Set<string> {
-  const declared = new Set<string>();
+// 문자열 제거(단일따옴표) — 정교 파싱 말고 보수적으로만(기존 너의 전략과 동일 결)
+function stripSingleQuoted2(line: string): string {
+  // '' 는 escape로 보고 유지, 그 외는 '...'(라인 내)만 공백으로 마스킹
+  let out = '';
+  let inQ = false;
 
-  // Strict declaration rule:
-  // - One variable per line
-  // - No commas
-  // - No '=' initialization
-  // - Optional trailing comment starting with '#'
-  // Examples allowed:
-  //   @String sName
-  //   @Int nCount
-  const strictDeclRe = /^\s*@(String|Int)\b\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:#.*)?$/i;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === "'") {
+      const next = line[i + 1];
+      if (inQ) {
+        if (next === "'") {
+          // '' inside string
+          out += "  ";
+          i++;
+          continue;
+        } else {
+          inQ = false;
+          out += ' ';
+          continue;
+        }
+      } else {
+        if (next === "'") {
+          // '' outside string
+          out += "  ";
+          i++;
+          continue;
+        } else {
+          inQ = true;
+          out += ' ';
+          continue;
+        }
+      }
+    }
+    out += inQ ? ' ' : ch;
+  }
 
-  // Detect any line that looks like a declaration start (so we can flag invalid ones)
-  const looseDeclRe = /^\s*@(String|Int)\b/i;
+  return out;
+}
 
-  for (let line = startLine; line <= endLine; line++) {
+// 각 라인이 어떤 Function에 속하는지 매핑 (없으면 -1)
+function buildFuncLineMap(doc: vscode.TextDocument): number[] {
+  const lineToFunc = new Array<number>(doc.lineCount).fill(-1);
+
+  let funcIdx = -1;
+  let inFunc = false;
+
+  for (let line = 0; line < doc.lineCount; line++) {
+    const raw = doc.lineAt(line).text;
+    if (fnStartRe.test(raw)) {
+      funcIdx++;
+      inFunc = true;
+      lineToFunc[line] = funcIdx;
+      continue;
+    }
+    if (inFunc) lineToFunc[line] = funcIdx;
+    if (fnEndRe.test(raw)) {
+      // End Function 라인도 해당 함수로 취급
+      inFunc = false;
+    }
+  }
+
+  return lineToFunc;
+}
+
+function buildFuncNameMap(doc: vscode.TextDocument): Map<number, string> {
+  const map = new Map<number, string>();
+
+  let funcIdx = -1;
+
+  for (let line = 0; line < doc.lineCount; line++) {
+    const raw = doc.lineAt(line).text;
+
+    if (fnStartRe.test(raw)) {
+      funcIdx++;
+
+      const mm = /^\s*@Function\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)/i.exec(raw);
+      if (mm) {
+        map.set(funcIdx, mm[1]);
+      }
+    }
+  }
+
+  return map;
+}
+
+function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
+  if (doc.languageId !== 'abl') return;
+
+  const diagnostics: vscode.Diagnostic[] = [];
+  const lineToFunc = buildFuncLineMap(doc);
+
+  // “지금까지 선언된” 기준으로 에러를 내기 위해 top-down 누적
+  const globalDeclared = new Set<string>();
+  const localDeclaredByFunc = new Map<number, Set<string>>();
+
+  const getLocalSet = (funcId: number) => {
+    let s = localDeclaredByFunc.get(funcId);
+    if (!s) {
+      s = new Set<string>();
+      localDeclaredByFunc.set(funcId, s);
+    }
+    return s;
+  };
+
+  for (let line = 0; line < doc.lineCount; line++) {
     const raw = doc.lineAt(line).text;
     if (!raw.trim()) continue;
-    if (isCommentLine(raw)) continue;
+    if (isCommentLine2(raw)) continue;
 
-    const text = stripSingleQuoted(raw);
+    const funcId = lineToFunc[line]; // -1이면 전역
 
-    if (!looseDeclRe.test(text)) continue;
+    // 문자열 마스킹 후 검사 (문자열 안 @Set/@Get 방지)
+    const text = stripSingleQuoted2(raw);
 
-    const m = strictDeclRe.exec(text);
-    if (!m) {
-      // Rule violation: multiple vars, initializer, or extra tokens
-      diagnostics.push(
-        new vscode.Diagnostic(
-          new vscode.Range(line, 0, line, raw.length),
-          '변수 선언 규칙 위반: 한 줄에 변수 1개만 선언 가능하며 초기화(=)는 허용되지 않습니다.',
-          vscode.DiagnosticSeverity.Error
-        )
-      );
+    // ✅ 0) @Function 라인 처리: 함수명은 "리턴 변수"로 암묵 선언 처리
+    const fm = fnNameRe.exec(text);
+    if (fm) {
+      const funcName = fm[1];
+
+      // buildFuncLineMap상 @Function 라인은 funcId가 -1이 아니어야 정상
+      if (funcId !== -1) {
+        getLocalSet(funcId).add(funcName);
+      }
+
+      // 함수 선언 라인에서는 추가 사용검사 불필요
       continue;
     }
 
-    const name = m[2];
-    if (name && isSimpleIdent(name)) {
-      declared.add(name);
-    }
-  }
+    // 1) 선언 처리
+    const dm = declRe.exec(text);
+    if (dm) {
+      const varName = dm[2];
 
-  return declared;
-}
-
-function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument, diagnostics: vscode.Diagnostic[]) {
-  const blocks = findFunctionBlocksRanges(doc);
-
-  // Build a quick lookup: which lines are inside any @Function ~ @End Function block
-  const inFuncLine: boolean[] = new Array(doc.lineCount).fill(false);
-  for (const b of blocks) {
-    const s = Math.max(0, b.startLine);
-    const e = Math.min(doc.lineCount - 1, b.endLine);
-    for (let line = s; line <= e; line++) inFuncLine[line] = true;
-  }
-
-  // Usage patterns (used both inside/outside)
-  const getRe = /@Get(?:@)?\s*\(\s*([^\)]+?)\s*\)/gi;
-  const setParenRe = /@Set(?:@)?\s*\(\s*([^\)]+?)\s*\)\s*(?:,|=)/gi;
-  const setNoParenRe = /@Set(?:@)?\s+([A-Za-z_][A-Za-z0-9_]*)\s*=/gi;
-
-  // 0) NEW: @Get/@Set must NOT be used outside of @Function blocks (local variables only)
-  for (let line = 0; line < doc.lineCount; line++) {
-    if (inFuncLine[line]) continue;
-
-    const raw = doc.lineAt(line).text;
-    if (!raw.trim()) continue;
-    if (isCommentLine(raw)) continue;
-
-    const text = stripSingleQuoted(raw);
-
-    // Quick check first
-    if (!/@Get\b|@Set\b/i.test(text)) continue;
-
-    // Flag @Get calls
-    getRe.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = getRe.exec(text)) !== null) {
-      const start = m.index;
-      const end = start + m[0].length;
-      const argRaw = (m[1] ?? '').trim();
-      const first = argRaw.split(/[\s,]/)[0]?.trim() ?? '';
-      const arg = first.replace(/^@/, '').replace(/@$/, '');
-
-      diagnostics.push(
-        new vscode.Diagnostic(
-          new vscode.Range(line, start, line, end),
-          isSimpleIdent(arg)
-            ? `'미선언 변수: ${arg}',`
-            : '미선언 변수',
-          vscode.DiagnosticSeverity.Error
-        )
-      );
-      if (m.index === getRe.lastIndex) getRe.lastIndex++;
-    }
-
-    // Flag @Set calls (paren style)
-    setParenRe.lastIndex = 0;
-    while ((m = setParenRe.exec(text)) !== null) {
-      const start = m.index;
-      const end = start + m[0].length;
-      const argRaw = (m[1] ?? '').trim();
-      const first = argRaw.split(/[\s,]/)[0]?.trim() ?? '';
-      const arg = first.replace(/^@/, '').replace(/@$/, '');
-
-      diagnostics.push(
-        new vscode.Diagnostic(
-          new vscode.Range(line, start, line, end),
-          isSimpleIdent(arg)
-            ? `'미선언 변수: ${arg}',`
-            : '미선언 변수',
-          vscode.DiagnosticSeverity.Error
-        )
-      );
-      if (m.index === setParenRe.lastIndex) setParenRe.lastIndex++;
-    }
-
-    // Flag @Set calls (no-paren style)
-    setNoParenRe.lastIndex = 0;
-    while ((m = setNoParenRe.exec(text)) !== null) {
-      const start = m.index;
-      const end = start + m[0].length;
-      const arg = (m[1] ?? '').trim();
-      diagnostics.push(
-        new vscode.Diagnostic(
-          new vscode.Range(line, start, line, end),
-          isSimpleIdent(arg)
-            ? `'미선언 변수: ${arg}',`
-            : '미선언 변수',
-          vscode.DiagnosticSeverity.Error
-        )
-      );
-      if (m.index === setNoParenRe.lastIndex) setNoParenRe.lastIndex++;
-    }
-  }
-
-  // 1) Inside each function block: validate declaration + usage
-  if (blocks.length === 0) return;
-
-  for (const b of blocks) {
-    const currentFuncName = (b.name ?? '').trim();
-    const declared = collectDeclaredVarsInBlock(doc, b.startLine, b.endLine, diagnostics);
-
-    for (let line = b.startLine; line <= b.endLine; line++) {
-      const raw = doc.lineAt(line).text;
-      if (!raw.trim()) continue;
-      if (isCommentLine(raw)) continue;
-
-      const text = stripSingleQuoted(raw);
-
-      // @Get
-      getRe.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = getRe.exec(text)) !== null) {
-        const argRaw = (m[1] ?? '').trim();
-        // For @Get, accept only the first token before whitespace or comma
-        const first = argRaw.split(/[\s,]/)[0]?.trim() ?? '';
-        const arg = first.replace(/^@/, '').replace(/@$/, '');
-
-        if (isSimpleIdent(arg) && !declared.has(arg)) {
-          const start = m.index;
-          const end = start + m[0].length;
-          diagnostics.push(
-            new vscode.Diagnostic(
-              new vscode.Range(line, start, line, end),
-              `미선언 변수: ${arg} (함수 내에서 @String / @Int 로 선언 필요)`,
-              vscode.DiagnosticSeverity.Error
-            )
-          );
-        }
-
-        if (m.index === getRe.lastIndex) getRe.lastIndex++;
+      if (funcId === -1) {
+        globalDeclared.add(varName);
+      } else {
+        getLocalSet(funcId).add(varName);
       }
+      continue; // 선언 라인에서는 사용검사를 굳이 하지 않음
+    }
 
-      // @Set (paren style)
-      setParenRe.lastIndex = 0;
-      while ((m = setParenRe.exec(text)) !== null) {
-        const argRaw = (m[1] ?? '').trim();
-        const first = argRaw.split(/[\s,]/)[0]?.trim() ?? '';
-        const arg = first.replace(/^@/, '').replace(/@$/, '');
-
-        // Allow: @Set <CurrentFunctionName> = ...  (return-like variable)
-        if (currentFuncName && arg === currentFuncName) {
-          if (m.index === setParenRe.lastIndex) setParenRe.lastIndex++;
-          continue;
-        }
-
-        if (isSimpleIdent(arg) && !declared.has(arg)) {
-          const start = m.index;
-          const end = start + m[0].length;
-          diagnostics.push(
-            new vscode.Diagnostic(
-              new vscode.Range(line, start, line, end),
-              `미선언 변수: ${arg} (함수 내에서 @String / @Int 로 선언 필요)`,
-              vscode.DiagnosticSeverity.Error
-            )
-          );
-        }
-
-        if (m.index === setParenRe.lastIndex) setParenRe.lastIndex++;
+    // 2) 사용 처리 (@Set, @Get)
+    const allowedInThisLine = (name: string) => {
+      if (funcId === -1) {
+        // 전역: 전역 선언만 허용
+        return globalDeclared.has(name);
+      } else {
+        // 함수 안: 로컬 + 전역 허용
+        const local = getLocalSet(funcId);
+        return local.has(name) || globalDeclared.has(name);
       }
+    };
 
-      // @Set (no-paren style): @Set name = ...
-      setNoParenRe.lastIndex = 0;
-      while ((m = setNoParenRe.exec(text)) !== null) {
-        const arg = (m[1] ?? '').trim();
+    // @Set x
+    setUseRe.lastIndex = 0;
+    for (let m; (m = setUseRe.exec(text)); ) {
+      const name = m[1];
+      if (!allowedInThisLine(name)) {
+        const start = m.index + m[0].lastIndexOf(name);
+        const end = start + name.length;
+        diagnostics.push(
+          new vscode.Diagnostic(
+            new vscode.Range(line, start, line, end),
+            funcId === -1
+              ? `전역 영역에서 선언되지 않은 변수입니다: ${name}`
+              : `Function/전역 어디에도 선언되지 않은 변수입니다: ${name}`,
+            vscode.DiagnosticSeverity.Error
+          )
+        );
+      }
+    }
 
-        // Allow: @Set <CurrentFunctionName> = ...
-        if (currentFuncName && arg === currentFuncName) {
-          if (m.index === setNoParenRe.lastIndex) setNoParenRe.lastIndex++;
-          continue;
-        }
+    // @Get(name)
+    getUseRe.lastIndex = 0;
+    for (let m; (m = getUseRe.exec(text)); ) {
+      const name = m[1];
+      if (!allowedInThisLine(name)) {
+        // 괄호 안 name 위치 찾기(대충 맞춰도 됨)
+        const whole = m[0];
+        const namePosInWhole = whole.indexOf(name);
+        const start = m.index + namePosInWhole;
+        const end = start + name.length;
 
-        if (isSimpleIdent(arg) && !declared.has(arg)) {
-          const start = m.index;
-          const end = start + m[0].length;
-          diagnostics.push(
-            new vscode.Diagnostic(
-              new vscode.Range(line, start, line, end),
-              `미선언 변수: ${arg} (함수 내에서 @String / @Int 로 선언 필요)`,
-              vscode.DiagnosticSeverity.Error
-            )
-          );
-        }
-
-        if (m.index === setNoParenRe.lastIndex) setNoParenRe.lastIndex++;
+        diagnostics.push(
+          new vscode.Diagnostic(
+            new vscode.Range(line, start, line, end),
+            funcId === -1
+              ? `전역 영역에서 선언되지 않은 변수입니다: ${name}`
+              : `Function/전역 어디에도 선언되지 않은 변수입니다: ${name}`,
+            vscode.DiagnosticSeverity.Error
+          )
+        );
       }
     }
   }
+
+  varDiag.set(doc.uri, diagnostics);
 }
 
 function isQuotedOperandOk(op: string): boolean {
@@ -2947,7 +2938,7 @@ function provideIfDiagnostics(doc: vscode.TextDocument) {
   }
 
   // Undeclared variable check for @Get/@Set within @Function blocks
-  provideUndeclaredVarDiagnostics(doc, diagnostics);
+  //provideUndeclaredVarDiagnostics(doc, diagnostics);
 
   provideForDiagnostics(doc, diagnostics);
   diag.set(doc.uri, diagnostics);
@@ -3100,11 +3091,12 @@ const formatterProvider: vscode.DocumentFormattingEditProvider = {
  * Extension lifecycle
  * ============================================================ */
 export function activate(context: vscode.ExtensionContext) {
+  // Diagnostic collections
   context.subscriptions.push(diag);
+  context.subscriptions.push(varDiag);
 
   // ---------------------------------------------------------------------------
   // Language configuration (Indentation Rules)
-  // - 목적: 자동완성/직접입력/엔터 등 어떤 방식이든 indent/outdent가 동일하게 동작하게 고정
   // ---------------------------------------------------------------------------
   context.subscriptions.push(
     vscode.languages.setLanguageConfiguration('abl', {
@@ -3115,44 +3107,28 @@ export function activate(context: vscode.ExtensionContext) {
         // - @Else
         // - @For
         // - @Function
-        increaseIndentPattern: /^	|^\s*@(?:(?:If\b.*@Then\b)|(?:Else\s+If\b.*@Then\b)|(?:Else\b)|(?:For\b)|(?:Function\b))/i,
+        increaseIndentPattern:
+          /^\t|^\s*@(?:(?:If\b.*@Then\b)|(?:Else\s+If\b.*@Then\b)|(?:Else\b)|(?:For\b)|(?:Function\b))/i,
 
         // 현재 라인이 outdent(감소)되어야 하는 패턴
         // - @End If / @End For / @End Function
         // - @Else / @Else If
-        decreaseIndentPattern: /^\s*@(?:(?:End\s+(?:If|For|Function)\b)|(?:Else\b)|(?:Else\s+If\b))/i
+        decreaseIndentPattern:
+          /^\s*@(?:(?:End\s+(?:If|For|Function)\b)|(?:Else\b)|(?:Else\s+If\b))/i
       },
 
       // 엔터 입력 시 다음 라인의 액션
-      // - @If ... @Then, @Else If ... @Then, @Else 이후에는 다음 라인이 자동 indent
       onEnterRules: [
-        {
-          beforeText: /^\s*@If\b.*@Then\b.*$/i,
-          action: { indentAction: vscode.IndentAction.Indent }
-        },
-        {
-          beforeText: /^\s*@Else\s+If\b.*@Then\b.*$/i,
-          action: { indentAction: vscode.IndentAction.Indent }
-        },
-        {
-          beforeText: /^\s*@Else\b.*$/i,
-          action: { indentAction: vscode.IndentAction.Indent }
-        },
-        {
-          beforeText: /^\s*@For\b.*$/i,
-          action: { indentAction: vscode.IndentAction.Indent }
-        },
-        {
-          beforeText: /^\s*@Function\b.*$/i,
-          action: { indentAction: vscode.IndentAction.Indent }
-        }
+        { beforeText: /^\s*@If\b.*@Then\b.*$/i, action: { indentAction: vscode.IndentAction.Indent } },
+        { beforeText: /^\s*@Else\s+If\b.*@Then\b.*$/i, action: { indentAction: vscode.IndentAction.Indent } },
+        { beforeText: /^\s*@Else\b.*$/i, action: { indentAction: vscode.IndentAction.Indent } },
+        { beforeText: /^\s*@For\b.*$/i, action: { indentAction: vscode.IndentAction.Indent } },
+        { beforeText: /^\s*@Function\b.*$/i, action: { indentAction: vscode.IndentAction.Indent } }
       ]
     })
   );
 
   // Outdent only the current line(s) after completion acceptance.
-  // We avoid `editor.action.reindentlines` here because it can reindent more than intended
-  // depending on the editor selection/state. `outdentLines` is strictly line-local.
   context.subscriptions.push(
     vscode.commands.registerCommand('abl.outdentCurrentLine', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -3161,7 +3137,6 @@ export function activate(context: vscode.ExtensionContext) {
       const doc = editor.document;
       const prevSelections = editor.selections.map(s => new vscode.Selection(s.start, s.end));
 
-      // Select only the active cursor line(s)
       const lineSelections = editor.selections.map(sel => {
         const line = sel.active.line;
         const text = doc.lineAt(line).text;
@@ -3177,6 +3152,7 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Semantic tokens
   context.subscriptions.push(
     vscode.languages.registerDocumentSemanticTokensProvider(
       { language: 'abl' },
@@ -3185,49 +3161,41 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // Diagnostics
   context.subscriptions.push(
-    vscode.workspace.onDidOpenTextDocument(provideIfDiagnostics),
-    vscode.workspace.onDidChangeTextDocument(e => provideIfDiagnostics(e.document))
+    vscode.workspace.onDidOpenTextDocument(doc => {
+      provideIfDiagnostics(doc);
+      provideUndeclaredVarDiagnostics(doc);
+    }),
+    vscode.workspace.onDidChangeTextDocument(e => {
+      provideIfDiagnostics(e.document);
+      provideUndeclaredVarDiagnostics(e.document);
+    })
   );
 
   if (vscode.window.activeTextEditor) {
     provideIfDiagnostics(vscode.window.activeTextEditor.document);
+    provideUndeclaredVarDiagnostics(vscode.window.activeTextEditor.document);
   }
 
+  // Language features
+  context.subscriptions.push(vscode.languages.registerHoverProvider({ language: 'abl' }, hoverProvider));
+  context.subscriptions.push(vscode.languages.registerDefinitionProvider({ language: 'abl' }, definitionProvider));
+  context.subscriptions.push(vscode.languages.registerReferenceProvider({ language: 'abl' }, referencesProvider));
+  context.subscriptions.push(vscode.languages.registerRenameProvider({ language: 'abl' }, renameProvider));
+  context.subscriptions.push(vscode.languages.registerFoldingRangeProvider({ language: 'abl' }, foldingProvider));
+  context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider({ language: 'abl' }, documentSymbolProvider));
+
+  // Formatter
   context.subscriptions.push(
-    vscode.languages.registerHoverProvider({ language: 'abl' }, hoverProvider)
+    vscode.languages.registerDocumentFormattingEditProvider({ language: 'abl' }, formatterProvider)
   );
 
-  context.subscriptions.push(
-    vscode.languages.registerDefinitionProvider({ language: 'abl' }, definitionProvider)
-  );
-
-  context.subscriptions.push(
-    vscode.languages.registerReferenceProvider({ language: 'abl' }, referencesProvider)
-  );
-
-  context.subscriptions.push(
-    vscode.languages.registerRenameProvider({ language: 'abl' }, renameProvider)
-  );
-
-  context.subscriptions.push(
-    vscode.languages.registerFoldingRangeProvider({ language: 'abl' }, foldingProvider)
-  );
-
-  context.subscriptions.push(
-    vscode.languages.registerDocumentSymbolProvider({ language: 'abl' }, documentSymbolProvider)
-  );
-
-  context.subscriptions.push(
-    vscode.languages.registerDocumentFormattingEditProvider(
-      { language: 'abl' },
-      formatterProvider
-    )
-  );
-
+  // Completion
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider({ language: 'abl' }, completionProvider, '@', '^', '.')
   );
 }
+
 
 export function deactivate() {}

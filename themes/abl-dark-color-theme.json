@@ -8,7 +8,8 @@
     "ablLogic": "#f8c57c",
     "ablFunctionDecl": "#957DAD",
     "ablFunctionEnd": "#957DAD",
-    "ablFunctionCall": "#8be9fd"
+    "ablFunctionCall": "#8be9fd",
+    "ablReturn": "#8be9fd"
   },
   "colors": {},
   "tokenColors": [
@@ -74,6 +75,6 @@
       "name": "ABL General Functions",
       "scope": ["support.function"],
       "settings": { "foreground": "#f1fa8c" }
-    }
+    },
   ]
 }

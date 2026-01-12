@@ -107,7 +107,7 @@ Completion에서 정의한 설명을 **Hover에서도 재사용**
 
 ### 변수 스코프 검사
 - 로컬 변수는 `@Function ~ @End Function` 내부에서만 사용 가능
-- 함수 외부에서 `@Get / @Set` 사용 시 오류
+- 함수 외부에서 `@Get / @Set` 은 따로 관리
 
 ### 변수 선언 규칙
 - 변수 선언은 `@String` 또는 `@Int` 만 허용
