@@ -23,3 +23,4 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - fixed '' in If
 - fixed '@Get()' not showing error for undeclared variable
 - fixed ^Data.[].Name! and ^Class.Name! to show error when ! is missing
+- fixed functions and maps to show error when @ is missing

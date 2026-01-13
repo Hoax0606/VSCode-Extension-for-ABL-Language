@@ -2967,6 +2967,95 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
     }
 
     // ---------------------------------------------------------------------
+    // 규칙: "@Func@(" 형태면 인자들은 모두 "@"로 끝나야 한다.
+    // 예) @Func@(a@,b@) OK / @Func@(a,b) ERROR / @Func(a,b) 검사 안 함
+    // ---------------------------------------------------------------------
+    const decoratedCallRe = /@([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)@\s*\(/g;
+
+    // 괄호 매칭(중첩 고려)
+    function findMatchingParen(s: string, openIndex: number) {
+      let depth = 0;
+      for (let i = openIndex; i < s.length; i++) {
+        const ch = s[i];
+        if (ch === '(') depth++;
+        else if (ch === ')') {
+          depth--;
+          if (depth === 0) return i;
+        }
+      }
+      return -1;
+    }
+
+    // 최상위 콤마 기준으로 인자 분리(중첩 괄호/대괄호/따옴표 고려)
+    function splitTopLevelArgs(argText: string): { text: string; start: number; end: number }[] {
+      const out: { text: string; start: number; end: number }[] = [];
+      let start = 0;
+      let p = 0, b = 0; // () depth, [] depth
+      let inSQ = false, inDQ = false;
+
+      for (let i = 0; i < argText.length; i++) {
+        const ch = argText[i];
+
+        // 따옴표 토글(간단 버전)
+        if (!inDQ && ch === "'" ) inSQ = !inSQ;
+        else if (!inSQ && ch === '"') inDQ = !inDQ;
+
+        if (inSQ || inDQ) continue;
+
+        if (ch === '(') p++;
+        else if (ch === ')') p = Math.max(0, p - 1);
+        else if (ch === '[') b++;
+        else if (ch === ']') b = Math.max(0, b - 1);
+
+        if (ch === ',' && p === 0 && b === 0) {
+          out.push({ text: argText.slice(start, i), start, end: i });
+          start = i + 1;
+        }
+      }
+      out.push({ text: argText.slice(start), start, end: argText.length });
+      return out;
+    }
+
+    decoratedCallRe.lastIndex = 0;
+    for (let m; (m = decoratedCallRe.exec(raw)); ) {
+      const openParenIndex = m.index + m[0].lastIndexOf('('); // '(' 위치
+      const closeParenIndex = findMatchingParen(raw, openParenIndex);
+      if (closeParenIndex === -1) continue; // 괄호가 안 닫히면 다른 진단에서 잡힐 가능성
+
+      const argsText = raw.slice(openParenIndex + 1, closeParenIndex);
+
+      // 인자들 분해(최상위 콤마 기준)
+      const parts = splitTopLevelArgs(argsText);
+
+      // 인자가 0개면 규칙상 어떻게? (원하면 여기서 스킵/에러 선택 가능)
+      // 지금은 0개면 스킵
+      if (parts.length === 1 && parts[0].text.trim() === '') continue;
+
+      for (const part of parts) {
+        const trimmed = part.text.trim();
+        if (!trimmed) continue;
+
+        // 규칙 핵심: 각 인자는 반드시 '@'로 끝나야 함
+        if (!trimmed.endsWith('@')) {
+          // 밑줄 range: 해당 인자 구간(원본 raw 기준)
+          const startCol = openParenIndex + 1 + part.start;
+          const endCol = openParenIndex + 1 + part.end;
+
+          diagnostics.push(
+            new vscode.Diagnostic(
+              new vscode.Range(line, startCol, line, endCol),
+              `@Func@( ... ) 형태에서는 각 인자가 반드시 '@'로 끝나야 합니다. 예: @Func@(a@,b@)`,
+              vscode.DiagnosticSeverity.Error
+            )
+          );
+        }
+      }
+
+      // 정규식이 같은 라인에서 여러 번 매칭될 수 있으니 그대로 계속
+    }
+
+
+    // ---------------------------------------------------------------------
     // ^Data / ^Class 경로는 반드시 '!' 로 종료되어야 함
     // 예: ^Data.Item[].Name! , ^Class.Name!
     // ---------------------------------------------------------------------
