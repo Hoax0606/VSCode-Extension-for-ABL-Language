@@ -2685,7 +2685,8 @@ const declRe = /^\s*@(String|Int)\s+([A-Za-z_][A-Za-z0-9_]*)\b/i;
 
 // 사용 패턴 (최소한으로: @Set x , @Get(x))
 const setUseRe = /@Set\s+([A-Za-z_][A-Za-z0-9_]*)\b/g;
-const getUseRe = /@Get\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/g;
+// const getUseRe = /@Get\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/g;
+const getUseRe = /@Get\s*\(([^)]*)\)/gi;
 
 // Function 블록 시작/끝 (너희 룰 파일 기준으로 맞춰둠)
 const fnStartRe = /^\s*@Function\b/i;
@@ -2813,10 +2814,12 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
 
     const funcId = lineToFunc[line]; // -1이면 전역
 
-    // 문자열 마스킹 후 검사 (문자열 안 @Set/@Get 방지)
+    // 문자열 마스킹 후 검사 (문자열 안 @Set 방지용)
+    // ⚠️ @Get은 문자열 안도 유효하므로 @Get 검사에는 raw를 사용할 것
     const text = stripSingleQuoted2(raw);
 
     // ✅ 0) @Function 라인 처리: 함수명은 "리턴 변수"로 암묵 선언 처리
+    fnNameRe.lastIndex = 0;
     const fm = fnNameRe.exec(text);
     if (fm) {
       const funcName = fm[1];
@@ -2828,6 +2831,7 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
         local.add(funcName);
 
         // (2) 파라미터 등록
+        fnParamsRe.lastIndex = 0;
         const pm = fnParamsRe.exec(text);
         if (pm) {
           const rawParams = pm[1].trim(); // "p1, p2, ..."
@@ -2848,6 +2852,7 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
     }
 
     // 1) 선언 처리
+    declRe.lastIndex = 0;
     const dm = declRe.exec(text);
     if (dm) {
       const varName = dm[2];
@@ -2872,7 +2877,9 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
       }
     };
 
-    // @Set x
+    // ---------------------------------------------------------------------
+    // @Set x   : 문자열 안 @Set은 "실행 코드"가 아니라고 보고 기존처럼 text에서만 검사
+    // ---------------------------------------------------------------------
     setUseRe.lastIndex = 0;
     for (let m; (m = setUseRe.exec(text)); ) {
       const name = m[1];
@@ -2891,23 +2898,40 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
       }
     }
 
-    // @Get(name)
+    // ---------------------------------------------------------------------
+    // @Get(x)  : 문자열 안도 유효하므로 raw에서 검사해야 함
+    //           (중요) range도 raw 기준 index로 계산해야 밑줄이 정확함
+    // ---------------------------------------------------------------------
     getUseRe.lastIndex = 0;
-    for (let m; (m = getUseRe.exec(text)); ) {
-      const name = m[1];
-      if (!allowedInThisLine(name)) {
-        // 괄호 안 name 위치 찾기(대충 맞춰도 됨)
-        const whole = m[0];
-        const namePosInWhole = whole.indexOf(name);
-        const start = m.index + namePosInWhole;
-        const end = start + name.length;
+    for (let m; (m = getUseRe.exec(raw)); ) {
+      const argRaw = m[1];       // 괄호 안 원본
+      const arg = argRaw.trim(); // 변수만 허용이므로 trim 후 검사
 
+      // 괄호 안 부분 range (raw 기준)
+      const openParenCol = m.index + m[0].indexOf('(') + 1;
+      const closeParenCol = openParenCol + argRaw.length;
+      const argRange = new vscode.Range(line, openParenCol, line, closeParenCol);
+
+      // 문법: @Get() 안에는 변수명 1개만 가능
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(arg)) {
         diagnostics.push(
           new vscode.Diagnostic(
-            new vscode.Range(line, start, line, end),
+            argRange,
+            `@Get()에는 변수명 1개만 올 수 있습니다. (예: @Get(myVar))`,
+            vscode.DiagnosticSeverity.Error
+          )
+        );
+        continue;
+      }
+
+      // 선언 여부
+      if (!allowedInThisLine(arg)) {
+        diagnostics.push(
+          new vscode.Diagnostic(
+            argRange,
             funcId === -1
-              ? `전역 영역에서 선언되지 않은 변수입니다: ${name}`
-              : `Function/전역 어디에도 선언되지 않은 변수입니다: ${name}`,
+              ? `전역 영역에서 선언되지 않은 변수입니다: ${arg}`
+              : `Function/전역 어디에도 선언되지 않은 변수입니다: ${arg}`,
             vscode.DiagnosticSeverity.Error
           )
         );
@@ -2917,6 +2941,7 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
 
   varDiag.set(doc.uri, diagnostics);
 }
+
 
 function isQuotedOperandOk(op: string): boolean {
   const t = stripOuterParens(op).trim();

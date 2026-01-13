@@ -19,3 +19,4 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Fixed
 - Variables used as function parameters to not show error
 - fixed '' in If
+- fixed '@Get()' not showing error for undeclared variable
