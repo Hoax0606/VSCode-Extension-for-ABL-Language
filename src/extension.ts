@@ -31,12 +31,9 @@ type TokenKind =
   | 'ablReturn';
 
 /**
- * ✅ 함수 목록 단일 소스
+ *   함수 목록 단일 소스
  * - kind: 'builtin' => semantic에서 ablFunc로 칠함
  * - kind: 'writer'  => completion은 제공해도 semantic은 tmLanguage에 맡김(덮어쓰기 방지)
- *
- * NOTE: "관리하는 애는 무조건 색칠" 정책이면 전부 builtin으로 두면 됨.
- *       지금은 Writer 류만 예외로 분리(기존 동작 유지).
  */
 type BuiltinKind = 'builtin' | 'writer';
 const FUNCTION_META: ReadonlyArray<{ name: string; kind: BuiltinKind }> = [
@@ -86,7 +83,7 @@ const FUNCTION_META: ReadonlyArray<{ name: string; kind: BuiltinKind }> = [
 const WRITER_KEYWORDS = new Set<string>(FUNCTION_META.filter(f => f.kind === 'writer').map(f => f.name));
 
 /**
- * ✅ 미리 등록한(내장) 함수들
+ *   미리 등록한(내장) 함수들
  * - 여기에 있는 것만 ablFunc로 칠해짐
  * - 그 외 @Something( 은 전부 ablFunctionCall(사용자 함수로 취급)
  */
@@ -101,7 +98,7 @@ const AT_CONTROL_WORDS = new Set([
   'End',
   'Break',
   'Continue',
-  'Function' // @Function 선언문
+  'Function'
 ]);
 
 /* ============================================================
@@ -165,7 +162,7 @@ function splitByAndOrTopLevel(s: string): string[] {
       const next2 = s[i + 2];
 
       if (!inQ) {
-        // ✅ DSL 특수 케이스: '@ 문자 리터럴은 "'@" 로 쓰고(닫는 ' 없음),
+        // DSL 특수 케이스: '@ 문자 리터럴은 "'@" 로 쓰고(닫는 ' 없음),
         // 바로 뒤가 구분자(, ) 공백 등)면 정상으로 취급
         if (next === '@') {
           const after = s[i + 2] ?? '';
@@ -174,7 +171,7 @@ function splitByAndOrTopLevel(s: string): string[] {
             continue; // inQ는 false 유지
           }
         }
-        // ✅ DSL 특수 케이스: '''  ->  문자열 값이 단일 따옴표(')인 리터럴 (닫힌 것으로 처리)
+        // DSL 특수 케이스: '''  ->  문자열 값이 단일 따옴표(')인 리터럴 (닫힌 것으로 처리)
         if (next === "'" && next2 === "'") {
           i += 2;          // 세 개의 따옴표 소비
           // inQ는 false 유지 (이미 닫힌 리터럴로 취급)
@@ -193,7 +190,7 @@ function splitByAndOrTopLevel(s: string): string[] {
       } else {
         // 문자열 내부 처리
         if (next === "'") {
-          // ✅ 문자열 내부에서 ''' 를 만나면: ''(따옴표 문자) + '(닫기) 로 취급
+          // 문자열 내부에서 ''' 를 만나면: ''(따옴표 문자) + '(닫기) 로 취급
           if (next2 === "'") {
             i += 2;        // ''' 소비
             inQ = false;   // 닫힘
@@ -221,7 +218,7 @@ function splitByAndOrTopLevel(s: string): string[] {
       continue;
     }
 
-    if (depth !== 0) continue; // ✅ (기존 설계대로 "괄호 밖"에서만 AND/OR 분리)
+    if (depth !== 0) continue; // "괄호 밖"에서만 AND/OR 분리
 
     const w3 = s.slice(i, i + 3).toLowerCase();
     const w2 = s.slice(i, i + 2).toLowerCase();
@@ -256,7 +253,7 @@ function hasUnclosedSingleQuoteABL(s: string): boolean {
     const next2 = s[i + 2];
 
     if (!inQ) {
-      // ✅ DSL 특수 케이스: "'@" 정상 처리
+      // DSL 특수 케이스: "'@" 정상 처리
       if (next === '@') {
         const after = s[i + 2] ?? '';
         if (after === ',' || after === ')' || after === ' ' || after === '\t' || after === '') {
@@ -455,6 +452,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 
 - 예:
 \`\`\`abl
+- 파리미터 없으면:
 @Function FUNC_NAME()
     body
 @End Function
@@ -565,6 +563,18 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
   (() => {
     const item = ciKeyword('@End If', '@End If', 'Control', `If문 종료\`\`\`abl\n@End If\n\`\`\``);
     item.command = { title: 'Outdent Current Line', command: 'abl.outdentCurrentLine' };
+    return item;
+  })(),
+  (() => {
+    const item = ciKeyword(
+      '@Then',
+      '@Then',
+      'Control',
+    );
+
+    // @Then 입력 후 다음 줄 indent 유지를 위해
+    //item.command = { title: 'Indent Current Line', command: 'editor.action.indentLines' };
+
     return item;
   })(),
   ciSnippet('@For ... @End For','@For %${1:index} ${2:start} : ${3:end}\n\t${4:statememt}\n@End For','Loop',
@@ -1087,12 +1097,6 @@ for (const it of COMPLETIONS_AT) {
   }
 }
 
-
-/* --------------------------
- * @Map. 컨텍스트 전용 (Get/Set/Clear)
- *  - label은 짧게(Get/Set/Clear)
- *  - doc는 풀 형태(@Map.Get@(@))로 제공
- * -------------------------- */
 const COMPLETIONS_MAP_DOT: vscode.CompletionItem[] = [
   ciSnippet('Get','Get@(${1:value}@)','Map',
   `
@@ -1206,7 +1210,7 @@ const COMPLETIONS_CARET: vscode.CompletionItem[] = [
  *  - doc: full path로 제공
  * -------------------------- */
 const CLASS_PROPS = ['Name!', 'Tobe!', 'Package!', 'Extends!'];
-const DATA_ROOT_SUFFIXES = ['Count!', 'Item[].']; // ★ 여기서 Item[]. 제공
+const DATA_ROOT_SUFFIXES = ['Count!', 'Item[].']; // 여기서 Item[]. 제공
 
 const DATA_ITEM_PROPS = [
   'Name!', 'Tobe!', 'Type!', 'TobeType!', 'Length!', 'NewLine!', 'Line!',
@@ -1276,7 +1280,7 @@ function extendDataItemDotItems(base: vscode.CompletionItem[]): vscode.Completio
     '^Data.Item[]',
     docFor(
       '^Data.Item[].StringTokenInfo[].',
-      '문자열을 토큰화 시킨 정본'
+      '문자열을 토큰화 시킨 정보'
     )
   );
 
@@ -1644,7 +1648,7 @@ function hoverDocForCaret(token: string): string | null {
 
       // 2) StringTokenInfo[]. 자체
       if (token === '^Data.Item[].StringTokenInfo[].' || token === '^Data.Item[].StringTokenInfo[]') {
-        return docFor('^Data.Item[].StringTokenInfo[].', '문자열을 토큰화 시킨 정본');
+        return docFor('^Data.Item[].StringTokenInfo[].', '문자열을 토큰화 시킨 정보');
       }
 
       return null;
@@ -1668,13 +1672,13 @@ function hoverDocForCaret(token: string): string | null {
     if (DATA_ROOT_DOC[key]) return docFor(`^Data.${key}`, DATA_ROOT_DOC[key]);
 
     // ^Data. 자체
-    if (token === '^Data.' || token === '^Data') return docFor('^Data.', '토큰에 대한 정본');
+    if (token === '^Data.' || token === '^Data') return docFor('^Data.', '토큰에 대한 정보');
 
     return null;
   }
 
   // ^Data / ^Class 루트
-  if (token === '^Data') return docFor('^Data.', '토큰에 대한 정본');
+  if (token === '^Data') return docFor('^Data.', '토큰에 대한 정보');
   if (token === '^Class') return docFor('^Class.', CLASS_ROOT_DOC);
 
   return null;
@@ -1694,7 +1698,7 @@ const hoverProvider: vscode.HoverProvider = {
       if (m) {
         return new vscode.Hover(
           md(
-            `**사용자 정의 함수 선언**\n\n\`\`\`abl\n@Function FUNC_NAME()\n    body\n@End Function\n\`\`\``
+            `**사용자 정의 함수 선언**\n\n\`\`\`abl\n@Function FUNC_NAME()\n\tbody\n@End Function\n\`\`\``
           )
         );
       }
