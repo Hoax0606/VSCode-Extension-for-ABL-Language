@@ -484,6 +484,34 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
     return item;
   })(),
 
+  // Get, Set
+  ciSnippet('@Set', '@Set ${1:variable} = ${2:result}', 'Set',
+    `
+**변수에 값 할당**
+
+- 인자1: 변수명
+- 설정값: 값
+
+\`\`\`abl
+# myVar 변수에 100 저장
+@Set myVar = 100
+\`\`\`
+  `
+  ),
+  
+  ciSnippet('@Get()', '@Get(${1:variable})', 'Get',
+    `
+**변수 값 가져오기**
+
+- 인자1: 변수명
+
+\`\`\`abl
+# myVar 변수 값 가져오기
+@Get(myVar)
+\`\`\`
+    `
+  ),
+
   // Map
   ciSnippet('@Map.Set@(@,@)','@Map.Set@(${1:key}@,${2:value}@)','Map',
     `
@@ -2527,7 +2555,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
       }
 
       /* =========================
-       * ✅ Map context (원본 유지)
+       * Map context (원본 유지)
        * ========================= */
       mapName.lastIndex = i;
       const mm2 = mapName.exec(lineText);
