@@ -2965,6 +2965,30 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
         );
       }
     }
+
+    // ---------------------------------------------------------------------
+    // ^Data / ^Class 경로는 반드시 '!' 로 종료되어야 함
+    // 예: ^Data.Item[].Name! , ^Class.Name!
+    // ---------------------------------------------------------------------
+    const caretPathRe =
+      /\^(?:Data|Class)(?:\.[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\]|\[\])?)*/g;
+
+    caretPathRe.lastIndex = 0;
+    for (let m; (m = caretPathRe.exec(raw)); ) {
+      const fullPath = m[0];                 // 예: ^Data.Item[].Name
+      const endPos = m.index + fullPath.length;
+
+      // 바로 다음 문자가 '!'면 OK
+      if (raw[endPos] === '!') continue;
+
+      diagnostics.push(
+        new vscode.Diagnostic(
+          new vscode.Range(line, m.index, line, endPos),
+          `'^' 경로 '${fullPath}' 는 반드시 '!' 로 종료되어야 합니다.`,
+          vscode.DiagnosticSeverity.Error
+        )
+      );
+    }
   }
 
   varDiag.set(doc.uri, diagnostics);
