@@ -1384,6 +1384,96 @@ function findLastTriggerIndex(before: string, trigger: '@' | '^'): number {
   return before.lastIndexOf(trigger);
 }
 
+// ============================================================
+// User Function Completion (document-scoped)
+// - @ 누르면 현재 문서에 선언된 @Function 이름을 자동완성에 포함
+// - 파라미터 개수만큼 placeholder 생성
+// ============================================================
+
+type UserFuncInfo = { name: string; params?: string; line: number };
+const USER_FUNCS_BY_DOC = new Map<string, UserFuncInfo[]>(); // key: doc.uri.toString()
+
+function buildParamSnippet(params?: string): string {
+  if (!params) return '';
+  const names = params
+    .split(',')
+    .map(p => p.trim())
+    .filter(p => /^[A-Za-z_][A-Za-z0-9_]*$/.test(p));
+
+  return names.map((name, i) => `\${${i + 1}:${name}}`).join(', ');
+}
+
+function indexUserFunctions(doc: vscode.TextDocument) {
+  if (doc.languageId !== 'abl') return;
+
+  const list: UserFuncInfo[] = [];
+  const seen = new Set<string>();
+
+  for (let line = 0; line < doc.lineCount; line++) {
+    const raw = doc.lineAt(line).text;
+    if (!raw.trim()) continue;
+    if (isCommentLine2(raw)) continue;
+
+    // 문자열 마스킹 (함수 선언 라인에서 문자열은 보통 없지만, 통일)
+    const text = stripSingleQuoted2(raw);
+
+    fnNameRe.lastIndex = 0;
+    const fm = fnNameRe.exec(text);
+    if (!fm) continue;
+
+    const name = fm[1];
+    if (seen.has(name)) continue;
+    seen.add(name);
+
+    fnParamsRe.lastIndex = 0;
+    const pm = fnParamsRe.exec(text);
+    const params = pm?.[1]?.trim();
+
+    list.push({ name, params, line });
+  }
+
+  USER_FUNCS_BY_DOC.set(doc.uri.toString(), list);
+}
+
+function buildUserFuncCompletionItems(doc: vscode.TextDocument): vscode.CompletionItem[] {
+  const key = doc.uri.toString();
+  const funcs = USER_FUNCS_BY_DOC.get(key) ?? [];
+
+  const items: vscode.CompletionItem[] = [];
+  for (const f of funcs) {
+    const label = `@${f.name}`;
+    const it = new vscode.CompletionItem(label, vscode.CompletionItemKind.Function);
+
+    const paramSnippet = buildParamSnippet(f.params);
+    it.insertText = new vscode.SnippetString(`@${f.name}(${paramSnippet})$0`);
+
+    it.detail = 'User Function';
+
+    // Hover/Completion 문서는 여기서도 제공 가능(원하면 더 상세히)
+    it.documentation = md(
+      `**${label}** (User Function)\n\n` +
+      (f.params ? `**Params:** \`${f.params}\`\n\n` : '') +
+      `\`\`\`abl\n@${f.name}(${f.params ?? ''})\n\`\`\`\n`
+    );
+
+    // 내장보다 아래/위 정렬 조절
+    it.sortText = `z_user_${f.name.toLowerCase()}`;
+
+    items.push(it);
+  }
+
+  return items;
+}
+
+function completionsAtWithUserFunctions(doc: vscode.TextDocument): vscode.CompletionItem[] {
+  // 캐시가 아직 없으면 1회 생성
+  if (!USER_FUNCS_BY_DOC.has(doc.uri.toString())) indexUserFunctions(doc);
+
+  // 기본 + 유저 함수 합치기
+  const user = buildUserFuncCompletionItems(doc);
+  return [...COMPLETIONS_AT, ...user];
+}
+
 const completionProvider: vscode.CompletionItemProvider = {
   provideCompletionItems(doc, pos) {
     if (doc.languageId !== 'abl') return undefined;
@@ -1409,17 +1499,21 @@ const completionProvider: vscode.CompletionItemProvider = {
     }
     if (before.endsWith('@')) {
       const from = findLastTriggerIndex(before, '@');
-      if (from >= 0) return withReplaceRange(COMPLETIONS_AT, doc, pos, from);
-      return COMPLETIONS_AT;
+      const items = completionsAtWithUserFunctions(doc);
+      if (from >= 0) return withReplaceRange(items, doc, pos, from);
+      return items;
     }
 
     const last = lastTokenOf(before);
     if (last.startsWith('@Map.')) return COMPLETIONS_MAP_DOT;
+    
     if (last.startsWith('@')) {
       const from = findLastTriggerIndex(before, '@');
-      if (from >= 0) return withReplaceRange(COMPLETIONS_AT, doc, pos, from);
-      return COMPLETIONS_AT;
+      const items = completionsAtWithUserFunctions(doc);
+      if (from >= 0) return withReplaceRange(items, doc, pos, from);
+      return items;
     }
+
     if (last.startsWith('^')) {
       const from = findLastTriggerIndex(before, '^');
       if (from >= 0) return withReplaceRange(COMPLETIONS_CARET, doc, pos, from);
@@ -3458,16 +3552,19 @@ export function activate(context: vscode.ExtensionContext) {
   // Diagnostics
   context.subscriptions.push(
     vscode.workspace.onDidOpenTextDocument(doc => {
+      indexUserFunctions(doc);                 // ✅ 추가
       provideIfDiagnostics(doc);
       provideUndeclaredVarDiagnostics(doc);
     }),
     vscode.workspace.onDidChangeTextDocument(e => {
+      indexUserFunctions(e.document);          // ✅ 추가
       provideIfDiagnostics(e.document);
       provideUndeclaredVarDiagnostics(e.document);
     })
   );
 
   if (vscode.window.activeTextEditor) {
+    indexUserFunctions(vscode.window.activeTextEditor.document); // ✅ 추가
     provideIfDiagnostics(vscode.window.activeTextEditor.document);
     provideUndeclaredVarDiagnostics(vscode.window.activeTextEditor.document);
   }

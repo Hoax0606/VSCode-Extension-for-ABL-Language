@@ -4,10 +4,16 @@ All notable changes to the "abl-language" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.5] - 2026-01-20
+### Added
+- Added user function name in auto completion suggestions
+
+---
+
 ## [0.0.4] - 2026-01-13
 ### Fixed
-- fixed ^Data.[].Name! and ^Class.Name! to show error when ! is missing
-- fixed functions and maps to show error when @ is missing
+- Fixed ^Data.[].Name! and ^Class.Name! to show error when ! is missing
+- Fixed functions and maps to show error when @ is missing
 
 ---
 
@@ -16,8 +22,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Added documentation for @Get, @Set
 ### Fixed
 - Variables used as function parameters to not show error
-- fixed '' in If
-- fixed '@Get()' not showing error for undeclared variable
+- Fixed '' in If
+- Fixed '@Get()' not showing error for undeclared variable
 
 ---
 
