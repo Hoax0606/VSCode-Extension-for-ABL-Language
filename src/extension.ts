@@ -57,6 +57,7 @@ const FUNCTION_META: ReadonlyArray<{ name: string; kind: BuiltinKind }> = [
   { name: 'Prespace', kind: 'builtin' },
   { name: 'Pretab', kind: 'builtin' },
   { name: 'Space', kind: 'builtin' },
+  { name: 'DisplayLog', kind: 'builtin' },
 
   // Query / DB
   { name: 'SetQueryClear', kind: 'builtin' },
@@ -527,7 +528,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 `
   ),
 
-  ciSnippet('@Map.Get@(@)','@Map.Get@(${1:value}@)','Map',
+  ciSnippet('@Map.Get@(@)','@Map.Get@(${1:key}@)','Map',
     `
 **Map에 저장된 Key 값 가져오기**
 
@@ -651,7 +652,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 \`\`\`
     `
   ),
-  ciSnippet('@LoweCase@(@)', '@LoweCase@(${1:string}@)', 'Function',
+  ciSnippet('@LowerCase@(@)', '@LowerCase@(${1:string}@)', 'Function',
     `
 **소문자로 변환**
 
@@ -746,6 +747,17 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 \`\`\`abl
 # abcdefg -> abcdefg
 @Trim@( abcdefg@)
+\`\`\`
+    `
+  ),
+  ciSnippet('@DisplayLog()', '@DisplayLog(${1:statement})', 'Function',
+    `
+**문자열 앞/뒤의 불필요한 공백 제거**
+
+- 인자1 : 로그로 표시할 문장
+
+\`\`\`abl
+@DisplayLog(This is a log message)
 \`\`\`
     `
   ),
@@ -939,7 +951,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
   ),
 
   // Writer / Generation
-  ciSnippet('@Data()', '@Data(${1:token}) = ${2:result}', 'Writer',
+  ciSnippet('@Data()', '@Data(${1:token}) =${2:result}', 'Writer',
     `
 **토큰 자리에 값 출력** 
 
@@ -952,7 +964,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 \`\`\`
     `
   ),
-  ciSnippet('@Base()', '@Base(${1:token}) = ${2:result}', 'Writer',
+  ciSnippet('@Base()', '@Base(${1:token}) =${2:result}', 'Writer',
     `
 **다른 전환룰에 의해 전환되는걸 방지** 
 
@@ -964,7 +976,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 \`\`\`
     `
   ),
-  ciSnippet('@AddLine()', '@AddLine(${1:token}) = ${2:result}', 'Writer',
+  ciSnippet('@AddLine()', '@AddLine(${1:token}) =${2:result}', 'Writer',
     `
 **토큰의 뒤에 라인 추가** 
 
@@ -980,7 +992,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 \`\`\`
     `
   ),
-  ciSnippet('@InsertLine()', '@InsertLine(${1:token}) = ${2:result}', 'Writer',
+  ciSnippet('@InsertLine()', '@InsertLine(${1:token}) =${2:result}', 'Writer',
     `
 **토큰의 앞에 라인 추가** 
 
@@ -996,7 +1008,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 \`\`\`
     `
   ),
-  ciSnippet('@AddLinePrespace()', '@AddLinePrespace(${1:token},${2:spaces}) = ${3:result}', 'Writer',
+  ciSnippet('@AddLinePrespace()', '@AddLinePrespace(${1:token},${2:spaces}) =${3:result}', 'Writer',
     `
 **토큰의 뒤에 라인 추가 및 공백 추가** 
 
@@ -1013,7 +1025,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 \`\`\`
     `
   ),
-  ciSnippet('@InsertLinePrespace()', '@InsertLinePrespace(${1:token},${2:spaces}) = ${3:result}', 'Writer',
+  ciSnippet('@InsertLinePrespace()', '@InsertLinePrespace(${1:token},${2:spaces}) =${3:result}', 'Writer',
     `
 **토큰의 앞에 라인 추가 및 공백 추가**
 
@@ -1126,7 +1138,7 @@ for (const it of COMPLETIONS_AT) {
 }
 
 const COMPLETIONS_MAP_DOT: vscode.CompletionItem[] = [
-  ciSnippet('Get','Get@(${1:value}@)','Map',
+  ciSnippet('Get','Get@(${1:key}@)','Map',
   `
 **Map에 저장된 Key 값 가져오기**
 

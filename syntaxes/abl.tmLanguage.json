@@ -52,7 +52,7 @@
       "patterns": [
         {
         "name": "variable.other.index.abl", 
-        "match": "%[A-Za-z_][A-Za-z0-9_]*\\b"
+        "match": "%[A-Za-z][A-Za-z0-9]*(?=[^A-Za-z0-9]|$)"
         }
       ]
     },
