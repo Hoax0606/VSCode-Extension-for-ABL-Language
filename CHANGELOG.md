@@ -11,6 +11,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - @Map.Get(value@) Å® @Map.Get@(key@)
 - Delete first space for Writer when auto completing
 - Fixed LowerCase typo error
+- Add placeholder for function name in @Function
 
 ---
 
