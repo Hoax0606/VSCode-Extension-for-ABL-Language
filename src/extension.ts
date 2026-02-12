@@ -1353,13 +1353,15 @@ function getDotContext(lineBeforeCursor: string):
   | 'dataStringToken'
   | null {
   const s = lineBeforeCursor;
-  // 가장 구체적인 것부터
-  if (/\^Data\.Item\[\]\.StringTokenInfo(\[\])?\.\s*$/.test(s)) return 'dataStringToken';
-  if (/\^Data\.Item\[\]\.\s*$/.test(s)) return 'dataItem';
+
+  // [] 또는 [something] 모두 허용: \[[^\]]*\]
+  if (/\^Data\.Item\[[^\]]*\]\.StringTokenInfo(\[[^\]]*\])?\.\s*$/.test(s)) return 'dataStringToken';
+  if (/\^Data\.Item\[[^\]]*\]\.\s*$/.test(s)) return 'dataItem';
   if (/\^Data\.\s*$/.test(s)) return 'data';
   if (/\^Class\.\s*$/.test(s)) return 'class';
   return null;
 }
+
 
 /**
  * 현재 커서 앞 토큰을 간단히 얻는다 (공백 기준).
@@ -1493,6 +1495,7 @@ const completionProvider: vscode.CompletionItemProvider = {
     const lineText = doc.lineAt(pos.line).text;
     const before = lineText.slice(0, pos.character);
 
+    // 1) '.' 직후 (기존 동작)
     if (before.endsWith('.')) {
       if (/@Map\.\s*$/.test(before)) return COMPLETIONS_MAP_DOT;
 
@@ -1504,6 +1507,40 @@ const completionProvider: vscode.CompletionItemProvider = {
       return undefined;
     }
 
+    // 2) '.' 뒤에 이미 글자를 치고 있어도 Ctrl+Space로 dot completion 뜨게 (추가)
+    {
+      const lastDot = before.lastIndexOf('.');
+      if (lastDot >= 0) {
+        const replaceFromChar = lastDot + 1; // '.' 다음부터 현재 커서까지 교체
+
+        // @Map.<partial>
+        if (/@Map\.[A-Za-z0-9_]*\s*$/.test(before)) {
+          return withReplaceRange(COMPLETIONS_MAP_DOT, doc, pos, replaceFromChar);
+        }
+
+        // ^Class.<partial>
+        if (/\^Class\.[A-Za-z0-9_]*\s*$/.test(before)) {
+          return withReplaceRange(DOT_CLASS_ITEMS, doc, pos, replaceFromChar);
+        }
+
+        // ^Data.<partial>
+        if (/\^Data\.[A-Za-z0-9_]*\s*$/.test(before)) {
+          return withReplaceRange(DOT_DATA_ITEMS, doc, pos, replaceFromChar);
+        }
+
+        // ^Data.Item[...].<partial>
+        if (/\^Data\.Item\[[^\]]*\]\.[A-Za-z0-9_]*\s*$/.test(before)) {
+          return withReplaceRange(DOT_DATA_ITEM_ITEMS, doc, pos, replaceFromChar);
+        }
+
+        // ^Data.Item[...].StringTokenInfo[...].<partial>
+        if (/\^Data\.Item\[[^\]]*\]\.StringTokenInfo(\[[^\]]*\])?\.[A-Za-z0-9_]*\s*$/.test(before)) {
+          return withReplaceRange(DOT_DATA_STRINGTOKEN_ITEMS, doc, pos, replaceFromChar);
+        }
+      }
+    }
+
+    // 3) '^' / '@' 트리거 (기존 동작)
     if (before.endsWith('^')) {
       const from = findLastTriggerIndex(before, '^');
       if (from >= 0) return withReplaceRange(COMPLETIONS_CARET, doc, pos, from);
@@ -1516,9 +1553,10 @@ const completionProvider: vscode.CompletionItemProvider = {
       return items;
     }
 
+    // 4) 마지막 토큰 기반 (기존 동작)
     const last = lastTokenOf(before);
     if (last.startsWith('@Map.')) return COMPLETIONS_MAP_DOT;
-    
+
     if (last.startsWith('@')) {
       const from = findLastTriggerIndex(before, '@');
       const items = completionsAtWithUserFunctions(doc);
@@ -1535,6 +1573,7 @@ const completionProvider: vscode.CompletionItemProvider = {
     return undefined;
   }
 };
+
 
 /* ============================================================
  * Hover (Tooltip)
