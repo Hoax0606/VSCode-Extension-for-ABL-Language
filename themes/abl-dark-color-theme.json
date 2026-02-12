@@ -2,7 +2,44 @@
   "name": "ABL Dark",
   "type": "dark",
   "semanticHighlighting": true,
-  "semanticTokenColors": {
+
+  "colors": {
+    "editor.background": "#282A36",
+    "editor.foreground": "#F8F8F2",
+    "editorLineNumber.foreground": "#6272A4",
+    "editorLineNumber.activeForeground": "#F8F8F2",
+
+    "editorCursor.foreground": "#FF79C6",
+
+    "editor.selectionBackground": "#44475A",
+    "editor.inactiveSelectionBackground": "#3B3E52",
+    "editor.selectionHighlightBackground": "#44475A",
+
+    "editor.lineHighlightBackground": "#44475A",
+    "editor.findMatchBackground": "#FFB86C66",
+    "editor.findMatchHighlightBackground": "#FFB86C33",
+
+    "editor.wordHighlightBackground": "#8BE9FD33",
+    "editor.wordHighlightStrongBackground": "#8BE9FD55",
+
+    "editorBracketMatch.background": "#BD93F933",
+    "editorBracketMatch.border": "#BD93F9",
+
+    "editorWhitespace.foreground": "#6272A466",
+    "editorIndentGuide.background": "#6272A433",
+    "editorIndentGuide.activeBackground": "#6272A466",
+
+    "editorGutter.background": "#282A36",
+    "editorGutter.modifiedBackground": "#FFB86C",
+    "editorGutter.addedBackground": "#50FA7B",
+    "editorGutter.deletedBackground": "#FF5555",
+
+    "scrollbarSlider.background": "#6272A433",
+    "scrollbarSlider.hoverBackground": "#6272A466",
+    "scrollbarSlider.activeBackground": "#6272A499"
+  },
+
+ "semanticTokenColors": {
     "ablMap": "#869cff",
     "ablFunc": "#f1fa8c",
     "ablLogic": "#f8c57c",
@@ -11,7 +48,6 @@
     "ablFunctionCall": "#8be9fd",
     "ablReturn": "#8be9fd"
   },
-  "colors": {},
   "tokenColors": [
     {
       "name": "ABL Comment",
@@ -75,6 +111,6 @@
       "name": "ABL General Functions",
       "scope": ["support.function"],
       "settings": { "foreground": "#f1fa8c" }
-    },
+    }
   ]
 }

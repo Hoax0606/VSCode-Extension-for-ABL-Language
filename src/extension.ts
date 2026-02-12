@@ -446,7 +446,7 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
   // Function Decl / End
   ciSnippet(
     '@Function()',
-    '@Function ${1:Function Name}()\n\t#----------------------------------------------------------------------------\n\t# Variables\n\t#----------------------------------------------------------------------------\n\t#\n\t# Boolean Variable\n\t#\n\t# String Variable\n\t#\n\t# Int Variable\n\t#\n\t# Initialize Variable\n\t#----------------------------------------------------------------------------\n\t# Main Logic\n\t#----------------------------------------------------------------------------\n@End Function',
+    '@Function ${1:Function_Name}()\n\t#----------------------------------------------------------------------------\n\t# Variables\n\t#----------------------------------------------------------------------------\n\t#\n\t# Boolean Variable\n\t#\n\t# String Variable\n\t#\n\t# Int Variable\n\t#\n\t# Initialize Variable\n\t#----------------------------------------------------------------------------\n\t# Main Logic\n\t#----------------------------------------------------------------------------\n@End Function',
     'Function',
     `
 **사용자 정의 함수**
