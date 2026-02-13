@@ -6,12 +6,14 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [0.0.6] - 2026-02-12
 ### Fixed
-- Add description for @DisplayLog
-- fix syntax matching error for %idx_ 
-- @Map.Get(value@) Å® @Map.Get@(key@)
-- Delete first space for Writer when auto completing
+- Fixed syntax matching error for %idx_ 
+- Fixed @Map.Get(value@) Å® @Map.Get@(key@)
+- Deleted first space for Writer when auto completing
 - Fixed LowerCase typo error
-- Add placeholder for function name in @Function
+### Added
+- Added folding for comments
+- Added description for @DisplayLog
+- Added placeholder for function name in @Function
 
 ---
 

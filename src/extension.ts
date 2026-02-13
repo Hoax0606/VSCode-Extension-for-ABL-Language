@@ -2291,10 +2291,36 @@ function provideFoldingRanges(doc: vscode.TextDocument): vscode.FoldingRange[] {
   const ranges: vscode.FoldingRange[] = [];
   const stack: FoldFrame[] = [];
 
+  // ★ 추가: 연속된 라인 주석(#) 블록 접기용
+  let commentStart: number | null = null;
+
+  const closeCommentBlock = (currentLine: number) => {
+    if (commentStart === null) return;
+    const end = currentLine - 1;
+    // 최소 2줄 이상일 때만 접기 (end > start)
+    if (end > commentStart) {
+      ranges.push(new vscode.FoldingRange(commentStart, end, vscode.FoldingRangeKind.Comment));
+    }
+    commentStart = null;
+  };
+
   for (let line = 0; line < doc.lineCount; line++) {
     const text = doc.lineAt(line).text;
-    if (!text.trim()) continue;
-    if (isCommentLine(text)) continue;
+
+    // 빈 줄이면 주석 블록은 끊김
+    if (!text.trim()) {
+      closeCommentBlock(line);
+      continue;
+    }
+
+    // # 주석 라인이면 주석 블록 누적
+    if (isCommentLine(text)) {
+      if (commentStart === null) commentStart = line;
+      continue;
+    }
+
+    // 주석이 아닌 라인을 만나면, 직전까지의 주석 블록 닫기
+    closeCommentBlock(line);
 
     // ----- Starts -----
     if (/^\s*@Function\b/i.test(text)) {
@@ -2303,7 +2329,6 @@ function provideFoldingRanges(doc: vscode.TextDocument): vscode.FoldingRange[] {
     }
 
     // @If 만 블록 시작으로 취급 (@Else If / @Else 는 같은 블록 내부로 포함)
-    // - 중첩 If는 @If / @End If 스택으로 정상 처리됨
     if (/^\s*@If\b/i.test(text)) {
       stack.push({ kind: 'if', startLine: line });
       continue;
@@ -2316,13 +2341,10 @@ function provideFoldingRanges(doc: vscode.TextDocument): vscode.FoldingRange[] {
 
     // ----- Ends -----
     if (/^\s*@End\s+Function\b/i.test(text)) {
-      // 최근 function start를 찾아 매칭
       for (let i = stack.length - 1; i >= 0; i--) {
         if (stack[i].kind !== 'function') continue;
         const start = stack[i].startLine;
         stack.splice(i, 1);
-
-        // Start~End 사이 최소 1라인 이상일 때만 folding
         if (line > start) {
           ranges.push(new vscode.FoldingRange(start, line));
         }
@@ -2358,10 +2380,14 @@ function provideFoldingRanges(doc: vscode.TextDocument): vscode.FoldingRange[] {
     }
   }
 
-  // 정렬(선택): VS Code가 알아서 처리하긴 하지만, 안정성을 위해 start 기준 정렬
+  // 파일 끝이 주석으로 끝나는 경우 마무리
+  closeCommentBlock(doc.lineCount);
+
+  // 정렬(선택)
   ranges.sort((a, b) => (a.start - b.start) || (a.end - b.end));
   return ranges;
 }
+
 
 
 const foldingProvider: vscode.FoldingRangeProvider = {
