@@ -485,6 +485,44 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
     return item;
   })(),
 
+    // String, Int, Boolean
+  ciSnippet('@String', '@String s${1:name}', 'String',
+    `
+**String 변수 선언**
+
+- 인자1: 변수명
+
+\`\`\`abl
+# sText 변수 선언
+@String sText
+\`\`\`
+  `
+  ),
+  ciSnippet('@String', '@String o${1:name}', 'Boolean',
+    `
+**Boolean 변수 선언**
+
+- 인자1: 변수명
+
+\`\`\`abl
+# oFlag 변수 선언
+@String oFlag
+\`\`\`
+  `
+  ),
+  ciSnippet('@Int', '@Int n${1:name}', 'Int',
+    `
+**Int 변수 선언**
+
+- 인자1: 변수명
+
+\`\`\`abl
+# nNum 변수 선언
+@Int nNum
+\`\`\`
+  `
+  ),
+
   // Get, Set
   ciSnippet('@Set', '@Set ${1:variable} = ${2:result}', 'Set',
     `
@@ -900,6 +938,120 @@ const COMPLETIONS_AT: vscode.CompletionItem[] = [
 \`\`\`
     `
   ),
+  ciSnippet('@StrToken@(@,@)', '@StrToken@(${1:string}@,${2:token}@)', 'String Token',
+    `
+**문자열을 token을 기준으로 토큰화**
+
+- 인자1 : 토큰화 할 문자열
+- 인자2 : 구분자로 사용할 토큰 
+
+\`\`\`abl
+# A|B|C|D|E -> A B C D E 
+@StrToken@(A|B|C|D|E@,|@)
+\`\`\`
+    `
+  ),
+    ciSnippet('@StrAllToken@(@,@)', '@StrAllToken@(${1:string}@,${2:token}@)', 'String Token',
+    `
+**문자열을 token을 기준으로 구분자 까지 포함하여 토큰화**
+
+- 인자1 : 토큰화 할 문자열
+- 인자2 : 구분자로 사용할 토큰 
+
+\`\`\`abl
+# A|B|C|D|E -> A | B | C | D | E 
+@StrAllToken@(A|B|C|D|E@,|@)
+\`\`\`
+    `
+  ),
+  ciSnippet('@GetStrToken@(@)', '@GetStrToken@(${1:option}@)', 'String Token',
+    `
+**StrToken의 값을 option에 따라 가지고 옴**
+
+- 인자1 : 옵션
+
+\`\`\`abl
+# Count : 토큰화된 토큰의 개수
+# @StrToken@(A|B|C@,|@) 일 때
+# @GetStrToken@(Count@) -> 3
+# @StrAllToken@(A|B|C@,|@) 일 때
+# @GetStrToken@(Count@) -> 5
+@GetStrToken@(Count@)
+
+# All : 저장된 문자열 가지고 오기
+# @StrToken@(A|B|C@,|@) 일 때 
+# @GetStrToken@(All@) -> A|B|C
+# @StrAllToken@(A|B|C@,|@) 일 때
+# @GetStrToken@(All@) -> A|B|C
+@GetStrToken@(All@)
+
+# index : 토큰화된 n 번째 토큰 가지고 오기
+# @StrToken@(A|B|C@,|@) 일 때
+# @GetStrToken@(2@) -> B
+# @StrAllToken@(A|B|C@,|@) 일 때
+# @GetStrToken@(2@) -> |
+@GetStrToken@(2@)
+\`\`\`
+    `
+  ),
+    ciSnippet('@GetStrToken@(All@,@)', '@GetStrToken@(All@,${1:token}@)', 'String Token',
+    `
+**StrToken의 구분자 변경**
+
+- 인자1 : All 고정
+- 인자2 : 변경할 구분자로 사용할 토큰
+
+\`\`\`abl
+# Count : 토큰화된 토큰의 개수
+# A|B|C -> A_B_C
+@GetStrToken@(All@,_@)
+\`\`\`
+    `
+  ),
+    ciSnippet('@GetStrTokens@(@,@)', '@GetStrTokens@(${1:start}@,${2:end}@)', 'String Token',
+    `
+**StrToken으로 토크닝된 값을 범위로 가지고 옴**
+
+- 인자1 : 시작 인덱스
+- 인자2 : 끝 인덱스
+
+\`\`\`abl
+# Count : 토큰화된 토큰의 개수
+# A|B|C|D|E -> B|C|D
+@GetStrTokens@(2@,4@)
+\`\`\`
+    `
+  ),
+    ciSnippet('@GetStrTokens@(@,@,@)', '@GetStrTokens@(${1:start}@,${2:end}@,${3:token}@)', 'String Token',
+    `
+**StrToken으로 토크닝된 값을 범위로 가지고 오고 구분 토큰 변경*
+
+- 인자1 : 시작 인덱스
+- 인자2 : 끝 인덱스
+- 인자3 : 변경할 구분자로 사용할 토큰
+
+\`\`\`abl
+# Count : 토큰화된 토큰의 개수
+# A|B|C|D|E -> B_C_D
+@GetStrTokens@(2@,4@,_@)
+\`\`\`
+    `
+  ),
+    ciSnippet('@SetStrToken@(@,@)', '@SetStrTokens@(${1:index}@,${2:token}@)', 'String Token',
+    `
+**StrToken의 토큰 값 변경*
+
+- 인자1 : 변경할 인덱스
+- 인자2 : 변경할 문자열
+
+\`\`\`abl
+# Count : 토큰화된 토큰의 개수
+# A|B|C|D|E -> A|X|C|D|E
+@SetStrToken@(2@,X@)
+\`\`\`
+    `
+  ),
+  
 
   // Query
   ciSnippet('@SetQueryClear()', '@SetQueryClear()', 'DB Function',
@@ -1392,6 +1544,90 @@ function withReplaceRange(
   });
 }
 
+function buildDeclaredVarItemsAt(doc: vscode.TextDocument, pos: vscode.Position): vscode.CompletionItem[] {
+  // 선언 패턴: @String x / @Int x
+  const declReLocal = /^\s*@(String|Int)\s+([A-Za-z_][A-Za-z0-9_]*)\b/i;
+
+  const fnStartReLocal = /^\s*@Function\b/i;
+  const fnEndReLocal = /^\s*@End\s+Function\b/i;
+  const fnNameReLocal = /^\s*@Function\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)/i;
+  const fnParamsReLocal = /^\s*@Function\b.*?\(([^)]*)\)/i;
+
+  // 현재 라인이 어떤 Function에 속하는지 (-1이면 전역)
+  const lineToFunc = buildFuncLineMap(doc);
+  const curFuncId = lineToFunc[pos.line];
+
+  const globalDeclared = new Set<string>();
+  const localDeclared = new Set<string>();
+
+  for (let line = 0; line <= pos.line; line++) {
+    let raw = doc.lineAt(line).text;
+
+    // 현재 라인은 커서 앞까지만 반영
+    if (line === pos.line) raw = raw.slice(0, pos.character);
+
+    if (!raw.trim()) continue;
+    if (isCommentLine(raw)) continue;
+
+    const funcId = lineToFunc[line]; // -1 전역, 그 외 함수
+
+    // 함수 선언 라인: 함수명(return 변수) + 파라미터를 로컬 선언으로 취급 (진단 로직과 동일)
+    if (fnStartReLocal.test(raw)) {
+      const fm = fnNameReLocal.exec(raw);
+      if (fm && funcId !== -1 && funcId === curFuncId) {
+        localDeclared.add(fm[1]);
+
+        const pm = fnParamsReLocal.exec(raw);
+        const params = pm?.[1]?.trim();
+        if (params) {
+          for (const token of params.split(',')) {
+            const name = token.trim();
+            if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) localDeclared.add(name);
+          }
+        }
+      }
+      continue;
+    }
+
+    // End Function은 선언 수집에 영향 없음
+    if (fnEndReLocal.test(raw)) continue;
+
+    // @String / @Int 선언
+    const dm = declReLocal.exec(raw);
+    if (dm) {
+      const varName = dm[2];
+
+      if (funcId === -1) {
+        globalDeclared.add(varName);
+      } else if (funcId === curFuncId) {
+        localDeclared.add(varName);
+      }
+      continue;
+    }
+  }
+
+  // 함수 안이면 (로컬 + 전역), 함수 밖이면 (전역만)
+  const merged = new Set<string>();
+  if (curFuncId === -1) {
+    for (const v of globalDeclared) merged.add(v);
+  } else {
+    for (const v of globalDeclared) merged.add(v);
+    for (const v of localDeclared) merged.add(v);
+  }
+
+  const items: vscode.CompletionItem[] = [];
+  for (const name of Array.from(merged).sort((a, b) => a.localeCompare(b))) {
+    const it = new vscode.CompletionItem(name, vscode.CompletionItemKind.Variable);
+    it.detail = curFuncId === -1 ? 'Global Variable' : (localDeclared.has(name) ? 'Local Variable' : 'Global Variable');
+    it.sortText = `a_var_${name.toLowerCase()}`;
+    it.insertText = name;
+    items.push(it);
+  }
+
+  return items;
+}
+
+
 function findLastTriggerIndex(before: string, trigger: '@' | '^'): number {
   // Replace from the last trigger character in the current line fragment.
   // This fixes cases like: user types '@' then accepts '@If' => previously produced '@@If'.
@@ -1495,6 +1731,28 @@ const completionProvider: vscode.CompletionItemProvider = {
     const lineText = doc.lineAt(pos.line).text;
     const before = lineText.slice(0, pos.character);
 
+    {
+      const m = /@Get\s*\(\s*([A-Za-z0-9_]*)$/i.exec(before);
+      if (m) {
+        const prefix = m[1] ?? '';
+        const replaceFromChar = pos.character - prefix.length;
+        const vars = buildDeclaredVarItemsAt(doc, pos);
+        return withReplaceRange(vars, doc, pos, replaceFromChar);
+      }
+    }
+
+    // @Set 뒤에서는 선언된 변수만 추천
+    {
+      const m = /@Set\s+([A-Za-z0-9_]*)$/i.exec(before);
+      if (m) {
+        const prefix = m[1] ?? '';
+        const replaceFromChar = pos.character - prefix.length;
+        const vars = buildDeclaredVarItemsAt(doc, pos);
+        return withReplaceRange(vars, doc, pos, replaceFromChar);
+      }
+    }
+
+
     // 1) '.' 직후 (기존 동작)
     if (before.endsWith('.')) {
       if (/@Map\.\s*$/.test(before)) return COMPLETIONS_MAP_DOT;
@@ -1557,7 +1815,8 @@ const completionProvider: vscode.CompletionItemProvider = {
     const last = lastTokenOf(before);
     if (last.startsWith('@Map.')) return COMPLETIONS_MAP_DOT;
 
-    if (last.startsWith('@')) {
+    //if (last.startsWith('@')) {
+    if (last.startsWith('@') && !/@Set\s+[A-Za-z0-9_]*$/.test(before)) {
       const from = findLastTriggerIndex(before, '@');
       const items = completionsAtWithUserFunctions(doc);
       if (from >= 0) return withReplaceRange(items, doc, pos, from);
@@ -2534,7 +2793,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
     // 문자열 내부는 제외하고 검사(진단과 동일한 전략)
     const scanText = stripSingleQuoted2(lineText);
 
-    // ✅ 함수 내부에서 @Set <함수명> / @Get(<함수명>) 만 ablReturn로 칠함
+    // 함수 내부에서 @Set <함수명> / @Get(<함수명>) 만 ablReturn로 칠함
     if (currentFuncName) {
       // @Set ASDF
       const setRe = /@Set\s+([A-Za-z_][A-Za-z0-9_]*)\b/g;
@@ -3014,7 +3273,7 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
     const funcId = lineToFunc[line]; // -1이면 전역
 
     // 문자열 마스킹 후 검사 (문자열 안 @Set 방지용)
-    // ⚠️ @Get은 문자열 안도 유효하므로 @Get 검사에는 raw를 사용할 것
+    // @Get은 문자열 안도 유효하므로 @Get 검사에는 raw를 사용할 것
     const text = stripSingleQuoted2(raw);
 
     // ✅ 0) @Function 라인 처리: 함수명은 "리턴 변수"로 암묵 선언 처리
@@ -3050,19 +3309,49 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
       continue;
     }
 
-    // 1) 선언 처리
+    // 1) 선언 처리 (+ 중복 선언 에러)
     declRe.lastIndex = 0;
     const dm = declRe.exec(text);
     if (dm) {
       const varName = dm[2];
 
+      // 밑줄 Range 계산(선언 라인에서 변수명 위치)
+      const atIdx = raw.indexOf('@');
+      const start = raw.indexOf(varName, atIdx >= 0 ? atIdx : 0);
+      const end = start >= 0 ? start + varName.length : raw.length;
+
       if (funcId === -1) {
-        globalDeclared.add(varName);
+        // 전역 중복 체크
+        if (globalDeclared.has(varName)) {
+          diagnostics.push(
+            new vscode.Diagnostic(
+              new vscode.Range(line, start, line, end),
+              `이미 전역에서 선언된 변수입니다: ${varName}`,
+              vscode.DiagnosticSeverity.Error
+            )
+          );
+        } else {
+          globalDeclared.add(varName);
+        }
       } else {
-        getLocalSet(funcId).add(varName);
+        // 로컬(함수) 중복 체크
+        const local = getLocalSet(funcId);
+        if (local.has(varName)) {
+          diagnostics.push(
+            new vscode.Diagnostic(
+              new vscode.Range(line, start, line, end),
+              `이미 Function 내에서 선언된 변수입니다: ${varName}`,
+              vscode.DiagnosticSeverity.Error
+            )
+          );
+        } else {
+          local.add(varName);
+        }
       }
+
       continue; // 선언 라인에서는 사용검사를 굳이 하지 않음
     }
+
 
     // 2) 사용 처리 (@Set, @Get)
     const allowedInThisLine = (name: string) => {

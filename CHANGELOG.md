@@ -4,6 +4,14 @@ All notable changes to the "abl-language" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.7] - 2026-02-18
+### Added
+- Added error diagnostic for duplicated variable declaration
+- Added variable recommendation for @Get and @Set
+- Added StrToken related grammar rules and auto completion
+
+---
+
 ## [0.0.6] - 2026-02-12
 ### Fixed
 - Fixed syntax matching error for %idx_ 
