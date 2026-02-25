@@ -58,6 +58,12 @@ const FUNCTION_META: ReadonlyArray<{ name: string; kind: BuiltinKind }> = [
   { name: 'Pretab', kind: 'builtin' },
   { name: 'Space', kind: 'builtin' },
   { name: 'DisplayLog', kind: 'builtin' },
+  { name: 'StrToken', kind: 'builtin' },
+  { name: 'SetStrToken', kind: 'builtin' },
+  { name: 'GetStrToken', kind: 'builtin' },
+  { name: 'GetStrTokens', kind: 'builtin' },
+  { name: 'StrAllToken', kind: 'builtin' },
+
 
   // Query / DB
   { name: 'SetQueryClear', kind: 'builtin' },
@@ -2785,6 +2791,9 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
 
   for (let line = 0; line < doc.lineCount; line++) {
     const lineText = doc.lineAt(line).text;
+    
+    if (/^\s*#/.test(lineText)) continue;
+
     const baseOffset = doc.offsetAt(new vscode.Position(line, 0));
 
     const funcId = lineToFunc[line];
@@ -2831,7 +2840,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
       const ch = lineText[i];
 
       /* =========================
-       * ✅ @Function / @End Function
+       * @Function / @End Function
        * ========================= */
 
       if (lineText.startsWith('@Function', i) && isWordBoundary(lineText, i, 9)) {
@@ -2855,7 +2864,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
       }
 
       /* =========================
-       * ✅ ^Data / ^Class (원본 유지)
+       * ^Data / ^Class (원본 유지)
        * ========================= */
       if (ch === '^') {
         if (lineText.startsWith('^Data', i)) {
@@ -2871,7 +2880,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
       if (inSingleQuote) continue;
 
       /* =========================
-       * ✅ 연산자 하이라이트 (원본 유지)
+       * 연산자 하이라이트 (원본 유지)
        * ========================= */
       if (ch === '+' || ch === '=') {
         const prev = i > 0 ? lineText[i - 1] : '';
@@ -2888,7 +2897,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
       }
 
       /* =========================
-       * ✅ ^Data.* / ^Class.* 전체 구간 (원본 유지)
+       * ^Data.* / ^Class.* 전체 구간 (원본 유지)
        * ========================= */
       if (ch === '^' && (lineText.startsWith('^Data', i) || lineText.startsWith('^Class', i))) {
         let j = i + 1;
@@ -2925,7 +2934,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
       }
 
       /* =========================
-       * ✅ If / ElseIf mode (원본 유지)
+       * If / ElseIf mode (원본 유지)
        * ========================= */
       const isIf = lineText.startsWith('@If', i) && isWordBoundary(lineText, i, 3);
       const isElseIf =
@@ -3002,7 +3011,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
       }
 
       /* ============================================================
-       * ✅ 핵심: @Something(...) 를 "선언 위치 무관"하게 분류
+       *    핵심: @Something(...) 를 "선언 위치 무관"하게 분류
        *  - KNOWN_FUNCTIONS => ablFunc
        *  - 그 외 => ablFunctionCall
        *  - 둘 다 stack에 넣어서 내부 @ / 끝 @ 색칠 유지
@@ -3039,7 +3048,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
       }
 
       /* =========================
-       * ✅ Inner @ (stack 기반, 원본 유지)
+       *  Inner @ (stack 기반, 원본 유지)
        * ========================= */
       if (stack.length > 0 && ch === '@') {
         const t = top();
@@ -3058,7 +3067,7 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
       }
 
       /* =========================
-       * ✅ Depth tracking (원본 유지)
+       *  Depth tracking (원본 유지)
        * ========================= */
       if (ifParenDepth > 0) {
         if (ch === '(') ifParenDepth++;
@@ -3276,7 +3285,7 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
     // @Get은 문자열 안도 유효하므로 @Get 검사에는 raw를 사용할 것
     const text = stripSingleQuoted2(raw);
 
-    // ✅ 0) @Function 라인 처리: 함수명은 "리턴 변수"로 암묵 선언 처리
+    //  0) @Function 라인 처리: 함수명은 "리턴 변수"로 암묵 선언 처리
     fnNameRe.lastIndex = 0;
     const fm = fnNameRe.exec(text);
     if (fm) {
@@ -3594,7 +3603,7 @@ function provideIfDiagnostics(doc: vscode.TextDocument) {
       condAll = condAll.replace(/^\s*@If\b/i, '');
       condAll = condAll.replace(/^\s*@Else\s+If\b/i, '');
 
-      // ✅ ABL 문자열 따옴표 미종료(오탐 최소): 조건식 전체를 1회 스캔
+      //  ABL 문자열 따옴표 미종료(오탐 최소): 조건식 전체를 1회 스캔
       if (hasUnclosedSingleQuoteABL(condAll)) {
         diagnostics.push(
           new vscode.Diagnostic(
@@ -3918,19 +3927,19 @@ export function activate(context: vscode.ExtensionContext) {
   // Diagnostics
   context.subscriptions.push(
     vscode.workspace.onDidOpenTextDocument(doc => {
-      indexUserFunctions(doc);                 // ✅ 추가
+      indexUserFunctions(doc);                 //  추가
       provideIfDiagnostics(doc);
       provideUndeclaredVarDiagnostics(doc);
     }),
     vscode.workspace.onDidChangeTextDocument(e => {
-      indexUserFunctions(e.document);          // ✅ 추가
+      indexUserFunctions(e.document);          //  추가
       provideIfDiagnostics(e.document);
       provideUndeclaredVarDiagnostics(e.document);
     })
   );
 
   if (vscode.window.activeTextEditor) {
-    indexUserFunctions(vscode.window.activeTextEditor.document); // ✅ 추가
+    indexUserFunctions(vscode.window.activeTextEditor.document); // 추가
     provideIfDiagnostics(vscode.window.activeTextEditor.document);
     provideUndeclaredVarDiagnostics(vscode.window.activeTextEditor.document);
   }
