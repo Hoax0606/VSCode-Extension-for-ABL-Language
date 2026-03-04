@@ -4,6 +4,18 @@ All notable changes to the "abl-language" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+
+## [0.0.8] - 2026-03-04
+### Fixed
+- Changed colors for syntax highlighting
+- Refactored all codes
+### Added
+- Added Git for cooperation
+- Added DB Connection (saves to DB automatically when saving file)
+- Added rule deletion
+- Added Run On Save extension integration (runs file when saving)
+---
+
 ## [0.0.7] - 2026-02-18
 ### Fixed
 - Fixed error where higlighted function name shows in comments
@@ -16,7 +28,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [0.0.6] - 2026-02-12
 ### Fixed
 - Fixed syntax matching error for %idx_ 
-- Fixed @Map.Get(value@) Å® @Map.Get@(key@)
+- Fixed @Map.Get(value@) ‚Üí @Map.Get@(key@)
 - Deleted first space for Writer when auto completing
 - Fixed LowerCase typo error
 ### Added

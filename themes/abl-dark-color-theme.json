@@ -39,33 +39,55 @@
     "scrollbarSlider.activeBackground": "#6272A499"
   },
 
- "semanticTokenColors": {
-    "ablMap": "#869cff",
+  "semanticTokenColors": {
+    "ablMap": "#FFB347",
     "ablFunc": "#f1fa8c",
     "ablLogic": "#f8c57c",
+    "ablOperator": "#FFFFFF",
     "ablFunctionDecl": "#957DAD",
     "ablFunctionEnd": "#957DAD",
-    "ablFunctionCall": "#8be9fd",
-    "ablReturn": "#8be9fd"
+    "ablFunctionCall": "#61AFEF",
+    "ablReturn": "#61AFEF"
   },
   "tokenColors": [
+    {
+      "name": "ABL Rule Name",
+      "scope": ["entity.name.rule.abl", "string.description.rule.abl", "entity.name.type.system.abl"],
+      "settings": { 
+        "foreground": "#b5c2ff",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "ABL Separators and Markers",
+      "scope": [
+        "comment.block.marker.abl",
+        "comment.punctuation.separator.abl",
+        "comment.metadata.abl"
+      ],
+      "settings": { 
+        "foreground": "#6272A4"
+      }
+    },
+    {
+      "name": "ABL Separator Line Numbers",
+      "scope": ["comment.line.number.abl"],
+      "settings": { "foreground": "#6272A4", "fontStyle": "italic" }
+    },
     {
       "name": "ABL Comment",
       "scope": ["comment", "comment.line", "comment.line.number-sign"],
       "settings": { "foreground": "#6A9955", "fontStyle": "italic" }
     },
     {
-      "scope": "constant.language.boolean.abl",
-      "settings": { "foreground": "#50fa7b" }
-    },
-    {
-      "scope": "constant.language.nullish.abl",
+      "name": "ABL Boolean and Nullish",
+      "scope": ["constant.language.boolean.abl", "constant.language.nullish.abl"],
       "settings": { "foreground": "#50fa7b" }
     },
     {
       "name": "ABL Numeric",
       "scope": ["constant.numeric.abl"],
-      "settings": { "foreground": "#68ffeb" }
+      "settings": { "foreground": "#B5CEA8" }
     },
     {
       "name": "ABL Index",
@@ -79,33 +101,29 @@
     },
     {
       "name": "ABL Get Set",
-      "scope": ["keyword.other.assignment"],
-      "settings": { "foreground": "#f1fa8c" }
+      "scope": ["keyword.other.assignment", "support.class.map"],
+      "settings": { "foreground": "#FFB347" }
     },
     {
       "name": "ABL Types",
-      "scope": ["storage.type"],
-      "settings": { "foreground": "#64BDB4" }
-    },
-    {
-      "name": "ABL Map",
-      "scope": ["support.class.map"],
-      "settings": { "foreground": "#f1fa8c" }
+      "scope": ["storage.type.abl"],
+      "settings": { "foreground": "#8BE9FD" }
     },
     {
       "name": "ABL Writer",
       "scope": ["support.function.writer"],
-      "settings": { "foreground": "#ff5555" }
+      "settings": { "foreground":  "#FF8B94" }
     },
     {
-      "name": "ABL Token Access",
-      "scope": ["support.class.token", "support.class.meta"],
-      "settings": { "foreground": "#D69D43" }
-    },
-    {
-      "name": "ABL Token/Meta Properties/ABL Reference Operator",
-      "scope": ["variable.other.property.token", "variable.other.property.meta", "keyword.operator.reference"],
-      "settings": { "foreground": "#D69D43" }
+      "name": "ABL Token and Meta Properties",
+      "scope": [
+        "support.class.token", 
+        "support.class.meta",
+        "variable.other.property.token", 
+        "variable.other.property.meta", 
+        "keyword.operator.reference"
+      ],
+      "settings": { "foreground": "#9CDCFE" }
     },
     {
       "name": "ABL General Functions",

@@ -2,7 +2,7 @@
   "name": "abl-language",
   "displayName": "abl-language",
   "description": "ABL language support for VS Code",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "hoax0606",
   "icon": "images/VSCode_ABL_Extension_Icon_rounded_square.png",
   "license": "MIT",
@@ -19,18 +19,39 @@
     "vscode": "^1.107.0"
   },
   "categories": [
-    "Other"
+    "Programming Languages"
   ],
   "activationEvents": [
     "onLanguage:abl"
   ],
   "main": "./out/extension.js",
   "contributes": {
+  "configuration": {
+        "title": "ABL SmartBridge",
+        "properties": {
+          "abl.smartBridge.enableRunOnSave": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable or disable automatic execution of the SmartBridge DB integration script on save."
+          },
+          "abl.smartBridge.scriptPath": {
+            "type": "string",
+            "default": "C:\\VAF\\SmartBridge_JPN\\Connect.ps1",
+            "description": "The absolute path to the PowerShell script used for SmartBridge DB integration."
+          },
+          "abl.smartBridge.deleteScriptPath": {
+            "type": "string",
+            "default": "C:\\VAF\\SmartBridge_JPN\\Delete_Rule.ps1",
+            "description": "The absolute path to the PowerShell script used for deleting rules from the SmartBridge DB."
+          }
+        }
+      },
     "commands": [
-      {
-        "command": "abl-language.helloWorld",
-        "title": "Hello World"
-      }
+      { "command": "abl.deleteRule", "title": "Delete Rule from DB" },
+      { "command": "abl.addRuleGeneral", "title": "ABL: Add New Rule" },
+      { "command": "abl.addRulePre", "title": "ABL: Add Preprocessing" },
+      { "command": "abl.addRulePost", "title": "ABL: Add Postprocessing" },
+      { "command": "abl.addRuleStored", "title": "ABL: Add User Function" }
     ],
     "languages": [
       {
@@ -67,7 +88,7 @@
       },
       {
         "id": "ablLogic",
-        "description": "ABL logic operator token",
+        "description": "ABL logic operator token (And/Or)",
         "superType": "operator"
       },
       {
@@ -89,9 +110,13 @@
         "id": "ablFunctionCall",
         "description": "ABL user function call",
         "superType": "function"
+      },
+      {
+        "id": "ablReturn",
+        "description": "ABL return variable token",
+        "superType": "variable"
       }
     ],
-
     "semanticTokenScopes": [
       {
         "language": "abl",
@@ -102,7 +127,8 @@
           "ablData": ["variable.other"],
           "ablFunctionDecl": ["entity.name.function"],
           "ablFunctionEnd": ["keyword.control"],
-          "ablFunctionCall": ["entity.name.function.call"]
+          "ablFunctionCall": ["entity.name.function.call"],
+          "ablReturn": ["variable.other.readwrite"]
         }
       }
     ]

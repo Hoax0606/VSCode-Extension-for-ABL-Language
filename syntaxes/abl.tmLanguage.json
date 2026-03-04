@@ -4,14 +4,44 @@
   "scopeName": "source.abl",
   "patterns": [
     { "include": "#comments" },
+    {
+      "name": "comment.block.marker.abl",
+      "match": "MMC1 End (Rule|Site) Data MMC1"
+    },
+    {
+      "name": "comment.punctuation.separator.abl",
+      "match": ">\\+\\|\\+<"
+    },
+    {
+      "name": "comment.line.number.abl",
+      "match": "(?<=>\\+\\|\\+<)\\s*\\d+\\s*(?=>\\+\\|\\+<|\\r?\\n|$)|<\\d+(?=>|$)|<>"
+    },
+    {
+      "name": "entity.name.rule.abl",
+      "match": "(?<=AnyFile>\\+\\|\\+<)(.*?)(?=>\\+\\|\\+<)"
+    },
+    {
+      "name": "entity.name.type.system.abl",
+      "match": "(?<=<)(Pre|Post|Stored)(?=>)"
+    },
+    {
+      "name": "string.description.rule.abl",
+      "match": "(?<=Partial Support>\\+\\|\\+<Partial Support>\\+\\|\\+<)(.*?)(?=>\\+\\|\\+<)"
+    },
+    {
+      "name": "comment.metadata.abl",
+      "match": "^(?!\\s*[@#]|MMC1\\b).+?(?=>\\+\\|\\+<)"
+    },
+    {
+      "name": "comment.metadata.abl",
+      "match": "(?<=>\\+\\|\\+<)(?!\\s*[@#]).+?(?=>\\+\\|\\+<)"
+    },
     { "include": "#numbers" },
     { "include": "#index" },
     { "include": "#control" },
     { "include": "#assignment" },
     { "include": "#types" },
-
     { "include": "#ablConstants" },
-
     { "include": "#mapCall" },
     { "include": "#map" },
     { "include": "#writer" },
@@ -37,61 +67,55 @@
       "patterns": [
         { 
           "name": "comment.line.number-sign.abl", 
-          "match": "^[ \\t]*#.*$"
+          "match": "(?<=^|\\s|>\\+\\|\\+<|<)#.*$"
         }
       ]
     },
-
     "numbers": {
       "patterns": [
         { "name": "constant.numeric.abl", "match": "\\b\\d+(\\.\\d+)?\\b" }
       ]
     },
-
     "index": {
       "patterns": [
         {
-        "name": "variable.other.index.abl", 
-        "match": "%[A-Za-z][A-Za-z0-9]*(?=[^A-Za-z0-9]|$)"
+          "name": "variable.other.index.abl", 
+          "match": "%[A-Za-z][A-Za-z0-9]*(?=[^A-Za-z0-9]|$)"
         }
       ]
     },
-
     "control": {
-    "patterns": [
+      "patterns": [
         {
-        "name": "keyword.control",
-        "match": "(?<![A-Za-z0-9_])@End\\s+(For|If)(?![A-Za-z0-9_])"
+          "name": "keyword.control",
+          "match": "(?<![A-Za-z0-9_])@End\\s+(For|If)(?![A-Za-z0-9_])"
         },
         {
-        "name": "keyword.control",
-        "match": "(?<![A-Za-z0-9_])@Else\\s+If(?![A-Za-z0-9_])"
+          "name": "keyword.control",
+          "match": "(?<![A-Za-z0-9_])@Else\\s+If(?![A-Za-z0-9_])"
         },
         {
-        "name": "keyword.control",
-        "match": "(?<![A-Za-z0-9_])@(If|Then|Else|For|End|Break|Continue|Return)(?![A-Za-z0-9_])"
+          "name": "keyword.control",
+          "match": "(?<![A-Za-z0-9_])@(If|Then|Else|For|End|Break|Continue|Return)(?![A-Za-z0-9_])"
         }
-    ]
+      ]
     },
-
     "assignment": {
       "patterns": [
         {
           "name": "keyword.other.assignment",
-          "match": "(?<![A-Za-z0-9_])@Set(?![A-Za-z0-9_])"
+          "match": "(?<![A-Za-z0-9_])@(Get|Set)(?![A-Za-z0-9_])"
         }
       ]
     },
-
     "types": {
-    "patterns": [
+      "patterns": [
         {
-        "name": "storage.type.abl",
-        "match": "(?<![A-Za-z0-9_])@(String|Int)(?![A-Za-z0-9_])"
+          "name": "storage.type.abl",
+          "match": "(?<![A-Za-z0-9_])@(String|Int)(?![A-Za-z0-9_])"
         }
-    ]
+      ]
     },
-
     "mapCall": {
       "patterns": [
         {
@@ -122,7 +146,6 @@
               "name": "support.class.map",
               "match": "(?<=!)@"
             },
-
             { "include": "#class" },
             { "include": "#data" },
             { "include": "#index" },
@@ -135,76 +158,63 @@
         }
       ]
     },
-
     "map": {
-    "patterns": [
+      "patterns": [
         {
-        "name": "support.class.map",
-        "match": "(?<![A-Za-z0-9_])@Map\\.(Get|Set|Clear)@?(?=@|\\(|\\s)"
-        },
-        { "include": "#index" },
-        { "include": "#numbers" }
-    ]
+          "name": "support.class.map",
+          "match": "(?<![A-Za-z0-9_])@Map\\.(Get|Set|Clear)@?(?=@|\\(|\\s)"
+        }
+      ]
     },
-
     "writer": {
-    "patterns": [
+      "patterns": [
         {
-        "name": "support.function.writer",
-        "match": "(?<![A-Za-z0-9_])@(Data|AddLine|AddLinePrespace|InsertLine|InsertLinePrespace)@?(?![A-Za-z0-9_])"
-        },
-        { "include": "#index" },
-        { "include": "#numbers" }
-    ]
+          "name": "support.function.writer",
+          "match": "(?<![A-Za-z0-9_])@(Data|Base|AddLine|AddLinePrespace|InsertLine|InsertLinePrespace)@?(?![A-Za-z0-9_])"
+        }
+      ]
     },
-
     "class": {
-    "patterns": [
+      "patterns": [
         {
-        "name": "support.class.meta",
-        "match": "\\^Class(?=\\.)"
+          "name": "support.class.meta",
+          "match": "\\^Class(?=\\.)"
         },
         {
-        "name": "variable.other.property.meta",
-        "match": "\\.(Name|Tobe|Extends|Package)(?=!)"
+          "name": "variable.other.property.meta",
+          "match": "\\.(Name|Tobe|Extends|Package)(?=!)"
         },
         {
-        "name": "keyword.operator.reference",
-        "match": "!"
-        },
-        { "include": "#index" },
-        { "include": "#numbers" }
-    ]
+          "name": "keyword.operator.reference",
+          "match": "!"
+        }
+      ]
     },
-
     "data": {
-    "patterns": [
+      "patterns": [
         {
-        "name": "support.class.token",
-        "match": "\\^Data\\.(?:Count|Item)(?=\\[|!)"
+          "name": "support.class.token",
+          "match": "\\^Data\\.(?:Count|Item)(?=\\[|!)"
         },
         {
-        "name": "support.class.token",
-        "match": "\\.StringTokenInfo(?=\\[)"
+          "name": "support.class.token",
+          "match": "\\.StringTokenInfo(?=\\[)"
         },
         {
-        "name": "variable.other.property.token",
-        "match": "\\.(Name|Tobe|Type|TobeType|Length|NewLine|Line|Block_Level|Level|Format|Prespace|Pretab|Column)(?=!)"
+          "name": "variable.other.property.token",
+          "match": "\\.(Name|Tobe|Type|TobeType|Length|NewLine|Line|Block_Level|Level|Format|Prespace|Pretab|Column)(?=!)"
         },
         {
-        "name": "keyword.operator.reference",
-        "match": "!"
-        },
-        { "include": "#index" },
-        { "include": "#numbers" }
-    ]
+          "name": "keyword.operator.reference",
+          "match": "!"
+        }
+      ]
     },
-
     "functionCall": {
       "patterns": [
         {
           "name": "meta.function-call.abl",
-          "begin": "(?<![A-Za-z0-9_])@(?!Map\\.)(?!Data\\b)(?!AddLine\\b)(?!AddLinePrespace\\b)(?!InsertLine\\b)(?!InsertLinePrespace\\b)([A-Za-z_][A-Za-z0-9_]*)@?\\s*@?\\(",
+          "begin": "(?<![A-Za-z0-9_])@(?!Map\\.)(?!Data\\b)(?!Base\\b)(?!AddLine\\b)(?!AddLinePrespace\\b)(?!InsertLine\\b)(?!InsertLinePrespace\\b)([A-Za-z_][A-Za-z0-9_]*)@?\\s*@?\\(",
           "beginCaptures": {
             "0": { "name": "support.function" }
           },
@@ -242,14 +252,13 @@
         }
       ]
     },
-
     "functions": {
-    "patterns": [
+      "patterns": [
         {
-        "name": "support.function",
-        "match": "(?<![A-Za-z0-9_])@[A-Za-z_][A-Za-z0-9_]*@?(?![A-Za-z0-9_])"
+          "name": "support.function",
+          "match": "(?<![A-Za-z0-9_])@[A-Za-z_][A-Za-z0-9_]*@?(?![A-Za-z0-9_])"
         }
-    ]
+      ]
     }
   }
 }
