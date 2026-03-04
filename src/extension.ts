@@ -2361,6 +2361,19 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(diag);
   context.subscriptions.push(varDiag);
 
+    // ==========================================
+    // 하단 상태바에 버전 아이콘 띄우기
+    // ==========================================
+    const extensionVersion = context.extension.packageJSON.version;
+    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    
+    // $(rocket) 은 VS Code 기본 로켓 아이콘입니다.
+    statusBarItem.text = `$(rocket) SmartBridge v${extensionVersion}`;
+    statusBarItem.tooltip = "SmartBridge 확장 프로그램이 실행 중입니다.";
+    statusBarItem.show();
+    
+    context.subscriptions.push(statusBarItem);
+
 // CodeLens 제공자 등록 (에디터에 버튼 띄우기)
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider({ language: 'abl' }, new RuleCodeLensProvider())

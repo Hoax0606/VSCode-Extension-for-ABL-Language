@@ -4,6 +4,10 @@ All notable changes to the "abl-language" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.0.1] - 2026-03-04
+### Added
+- Version in status bar
+---
 
 ## [1.0.0] - 2026-03-04
 ### Fixed
@@ -14,6 +18,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Added DB Connection (saves to DB automatically when saving file)
 - Added rule deletion
 - Added Run On Save extension integration (runs file when saving)
+- Added auto update for extension
 ---
 
 ## [0.0.7] - 2026-02-18
@@ -28,7 +33,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [0.0.6] - 2026-02-12
 ### Fixed
 - Fixed syntax matching error for %idx_ 
-- Fixed @Map.Get(value@) â†’ @Map.Get@(key@)
+- Fixed @Map.Get(value@) â†? @Map.Get@(key@)
 - Deleted first space for Writer when auto completing
 - Fixed LowerCase typo error
 ### Added
