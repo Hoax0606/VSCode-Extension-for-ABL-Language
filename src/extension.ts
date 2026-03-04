@@ -2517,19 +2517,19 @@ export function activate(context: vscode.ExtensionContext) {
       const cmd = `powershell -ExecutionPolicy Bypass -File "${scriptPath}" "${filePath}"`;
 
       // 4. 실행 및 알림 띄우기
-      vscode.window.setStatusBarMessage(`$(sync~spin) SmartBridge: 룰 전송 중...`, 3000);
+      vscode.window.setStatusBarMessage(`$(sync~spin) Sending rule to SmartBridge...`, 3000);
 
       exec(cmd, (error, stdout, stderr) => {
         if (error) {
-          vscode.window.showErrorMessage(`[SmartBridge 연동 실패] ${error.message}`);
+          vscode.window.showErrorMessage(`[Failed to save rule to SmartBridge] ${error.message}`);
           return;
         }
         if (stderr && stderr.trim().length > 0) {
-          vscode.window.showWarningMessage(`[SmartBridge 경고] ${stderr}`);
+          vscode.window.showWarningMessage(`[SmartBridge Error!] ${stderr}`);
         }
         
         // 성공 시 화면 우측 하단에 알림
-        vscode.window.showInformationMessage(`[SmartBridge] DB 연동 성공! (${stdout.trim() || '완료'})`);
+        vscode.window.showInformationMessage(`[SmartBridge] Successfully saved rule to SmartBridge! (${stdout.trim() || 'Completed'})`);
       });
     })
   );

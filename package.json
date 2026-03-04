@@ -37,12 +37,12 @@
           "abl.smartBridge.scriptPath": {
             "type": "string",
             "default": "C:\\VAF\\SmartBridge_JPN\\Connect.ps1",
-            "description": "The absolute path to the PowerShell script used for SmartBridge DB integration."
+            "description": "Path of Connect.ps1."
           },
           "abl.smartBridge.deleteScriptPath": {
             "type": "string",
             "default": "C:\\VAF\\SmartBridge_JPN\\Delete_Rule.ps1",
-            "description": "The absolute path to the PowerShell script used for deleting rules from the SmartBridge DB."
+            "description": "Path of Delete_Rule.ps1."
           }
         }
       },
