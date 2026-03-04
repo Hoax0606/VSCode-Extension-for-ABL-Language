@@ -5,7 +5,7 @@ All notable changes to the "abl-language" extension will be documented in this f
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
 
-## [0.0.8] - 2026-03-04
+## [1.0.0] - 2026-03-04
 ### Fixed
 - Changed colors for syntax highlighting
 - Refactored all codes
