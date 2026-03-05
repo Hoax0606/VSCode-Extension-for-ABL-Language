@@ -2553,52 +2553,58 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 // ====================================================================
-// GitHub 자동 업데이트 감지 및 설치 함수
+// GitHub Release Auto-Update Check & Install Function
 // ====================================================================
 function checkGitHubForUpdates(context: vscode.ExtensionContext) {
     const currentVersion = context.extension.packageJSON.version;
     
-    // 💡 [수정 필요] 선배님의 GitHub Repository 정보에 맞게 Raw 주소를 넣어주세요.
-    // GitHub에서 파일 내용 보기(Raw)를 눌렀을 때 나오는 주소입니다.
-    const versionUrl = "https://raw.githubusercontent.com/계정명/레포지토리명/main/version.txt";
-    const vsixUrl = "https://raw.githubusercontent.com/계정명/레포지토리명/main/SmartBridge.vsix";
+    // 💡 선배님의 실제 GitHub 주소 세팅 완료!
+    const repoPath = "Hoax0606/VSCode-Extension-for-ABL-Language"; 
+    
+    // API URL 자동 완성 (이 부분은 건드릴 필요 없습니다!)
+    const apiUrl = `https://api.github.com/repos/${repoPath}/releases/latest`;
 
-    // 1. curl 명령어로 GitHub에서 최신 버전(version.txt) 텍스트만 몰래 읽어오기
-    exec(`curl -s -L "${versionUrl}"`, (err, stdout) => {
-        if (err) return; // 인터넷이 안 되거나 주소가 틀리면 조용히 스킵 (에러 팝업 안 띄움)
+    exec(`curl -s "${apiUrl}"`, (err, stdout) => {
+        if (err) return;
 
-        const latestVersion = stdout.trim();
+        // JSON 응답에서 버전(태그)과 다운로드 링크 추출
+        const tagMatch = stdout.match(/"tag_name":\s*"v?([^"]+)"/);
+        const assetMatch = stdout.match(/"browser_download_url":\s*"([^"]+\.vsix)"/);
+
+        // 릴리즈나 파일이 없으면 조용히 스킵
+        if (!tagMatch || !assetMatch) return; 
+
+        const latestVersion = tagMatch[1]; 
+        const vsixUrl = assetMatch[1];     
         
-        // 읽어온 텍스트가 버전 형식(예: 1.0.1)이고, 현재 버전과 다르면 팝업 띄우기
-        if (latestVersion.match(/^[0-9]+\.[0-9]+\.[0-9]+$/) && currentVersion !== latestVersion) {
+        if (currentVersion !== latestVersion) {
             vscode.window.showInformationMessage(
-                `🚀 SmartBridge 새 버전(v${latestVersion})이 GitHub에 배포되었습니다!\n지금 업데이트하시겠습니까?`, 
-                '지금 업데이트'
+                `🚀 A new version of SmartBridge (v${latestVersion}) has been released!\nWould you like to update now?`, 
+                'Update Now'
             ).then(selection => {
-                if (selection === '지금 업데이트') {
-                    vscode.window.setStatusBarMessage('$(sync~spin) GitHub에서 다운로드 중...', 7000);
+                if (selection === 'Update Now') {
+                    vscode.window.setStatusBarMessage('$(sync~spin) Downloading release file...', 7000);
                     
-                    // 2. PC의 임시 폴더(Temp)에 .vsix 파일 다운로드
                     const tempVsixPath = path.join(os.tmpdir(), 'SmartBridge_latest.vsix');
                     
                     exec(`curl -s -L -o "${tempVsixPath}" "${vsixUrl}"`, (downloadErr) => {
                         if (downloadErr) {
-                            vscode.window.showErrorMessage(`[다운로드 실패] GitHub 경로를 확인해주세요: ${downloadErr.message}`);
+                            vscode.window.showErrorMessage(`[Download Failed] ${downloadErr.message}`);
                             return;
                         }
 
-                        // 3. 다운로드 완료 후 VS Code 명령어로 강제 설치
-                        exec(`code --install-extension "${tempVsixPath}" --force`, (installErr) => {
-                            if (installErr) {
-                                vscode.window.showErrorMessage(`[설치 실패] ${installErr.message}`);
-                            } else {
-                                vscode.window.showInformationMessage(
-                                    '✅ GitHub 업데이트가 완료되었습니다! 적용을 위해 VS Code를 다시 시작합니다.', 
-                                    '재시작'
-                                ).then(res => {
-                                    if (res === '재시작') vscode.commands.executeCommand('workbench.action.reloadWindow');
-                                });
-                            }
+                        const vsixUri = vscode.Uri.file(tempVsixPath);
+                        vscode.commands.executeCommand('workbench.extensions.installExtension', vsixUri).then(() => {
+                            // 설치 성공 시
+                            vscode.window.showInformationMessage(
+                                '✅ Update completed successfully! Please restart VS Code to apply the changes.', 
+                                'Restart'
+                            ).then(res => {
+                                if (res === 'Restart') vscode.commands.executeCommand('workbench.action.reloadWindow');
+                            });
+                        }, (installErr) => {
+                            // 설치 실패 시
+                            vscode.window.showErrorMessage(`[Install Failed] ${installErr}`);
                         });
                     });
                 }

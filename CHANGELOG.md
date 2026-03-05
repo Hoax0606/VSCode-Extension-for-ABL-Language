@@ -7,6 +7,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [1.0.1] - 2026-03-04
 ### Added
 - Version in status bar
+- Added auto update for extension
 ---
 
 ## [1.0.0] - 2026-03-04
@@ -33,7 +34,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [0.0.6] - 2026-02-12
 ### Fixed
 - Fixed syntax matching error for %idx_ 
-- Fixed @Map.Get(value@) â†? @Map.Get@(key@)
+- Fixed @Map.Get(value@) ï¿½? @Map.Get@(key@)
 - Deleted first space for Writer when auto completing
 - Fixed LowerCase typo error
 ### Added
