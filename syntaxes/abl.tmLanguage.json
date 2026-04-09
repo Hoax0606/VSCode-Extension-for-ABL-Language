@@ -68,7 +68,11 @@
       "patterns": [
         {
           "name": "comment.line.number-sign.abl",
-          "match": "(?<=^|\\s|>\\+\\|\\+<|<)#.*$"
+          "match": "^[ \\t]*#.*$"
+        },
+        {
+          "name": "comment.line.number-sign.abl",
+          "match": "(?<=>\\+\\|\\+<)#.*$"
         }
       ]
     },

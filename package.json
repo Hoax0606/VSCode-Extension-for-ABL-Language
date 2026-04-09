@@ -86,15 +86,15 @@
         "textMateRules": [
           {
             "scope": ["entity.name.rule.abl", "string.description.rule.abl", "entity.name.type.system.abl"],
-            "settings": { "foreground": "#b5c2ff", "fontStyle": "bold" }
+            "settings": { "foreground": "#D6D6DD", "fontStyle": "bold" }
           },
           {
             "scope": ["comment.block.marker.abl", "comment.punctuation.separator.abl", "comment.metadata.abl"],
-            "settings": { "foreground": "#6272A4" }
+            "settings": { "foreground": "#E4E4E45E" }
           },
           {
             "scope": "comment.line.number.abl",
-            "settings": { "foreground": "#6272A4", "fontStyle": "italic" }
+            "settings": { "foreground": "#E4E4E45E", "fontStyle": "italic" }
           },
           {
             "scope": ["comment", "comment.line", "comment.line.number-sign"],
