@@ -4,6 +4,20 @@ All notable changes to the "abl-language" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.0.2] - 2026-04-09
+### Fixed
+- Removed hardcoded Dracula theme dependency — syntax highlighting now works with any theme (Cursor Dark, etc.)
+- Fixed `<>` being incorrectly colored as a line number (`comment.line.number.abl`)
+- Fixed `And` / `Or` inside `@If` conditions not being colored (`ablLogic` semantic token color was missing)
+- Fixed `^Data`, `^Class` semantic token overriding tmLanguage colors
+- Fixed `].Prespace!` and similar bracket-indexed properties not being colored correctly
+- Fixed `@Get()` inside function calls (e.g. `@Make_UIO(@Get(var))`) showing wrong color due to semantic token emit conflict
+### Added
+- Added `semanticTokenColorCustomizations` to `configurationDefaults` for theme-independent semantic token colors (`ablLogic`, `ablMap`, `ablFunc`, `ablFunctionDecl`, `ablFunctionEnd`, `ablFunctionCall`, `ablReturn`)
+- Added `getCall` grammar rule to correctly scope `@Get(varName)` as `keyword.other.assignment`
+- Added recursive `#functionCall` and `#mapCall` includes to handle nested function calls
+---
+
 ## [1.0.1] - 2026-03-04
 ### Added
 - Version in status bar

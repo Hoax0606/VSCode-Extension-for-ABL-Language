@@ -1790,9 +1790,26 @@ function provideTokens(doc: vscode.TextDocument): vscode.SemanticTokens {
         }
       }
 
+      // if (stack.length > 0 && ch === '@') {
+      //   const t = top();
+      //   if (t) {
+      //     const prev = i > 0 ? lineText[i - 1] : '';
+      //     const next = i + 1 < lineText.length ? lineText[i + 1] : '';
+      //     const beforePunct = isAttachPunct(next);
+      //     const afterPunct = isAttachPunct(prev);
+      //     const afterIdent = isIdentChar(prev);
+      //     if (beforePunct || afterPunct || afterIdent) {
+      //       pushToken(builder, doc, baseOffset + i, 1, t.kind);
+      //     }
+      //   }
+      // }
+
       if (stack.length > 0 && ch === '@') {
         const t = top();
         if (t) {
+          // @Get( 이면 semantic emit 건너뜀 → tmLanguage에 맡김
+          if (lineText.startsWith('Get(', i + 1)) continue;
+          
           const prev = i > 0 ? lineText[i - 1] : '';
           const next = i + 1 < lineText.length ? lineText[i + 1] : '';
           const beforePunct = isAttachPunct(next);

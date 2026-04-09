@@ -14,7 +14,7 @@
     },
     {
       "name": "comment.line.number.abl",
-      "match": "(?<=>\\+\\|\\+<)\\s*\\d+\\s*(?=>\\+\\|\\+<|\\r?\\n|$)|<\\d+(?=>|$)|<>"
+      "match": "(?<=>\\+\\|\\+<)\\s*\\d+\\s*(?=>\\+\\|\\+<|\\r?\\n|$)|<\\d+(?=>|$)"
     },
     {
       "name": "entity.name.rule.abl",
@@ -47,6 +47,7 @@
     { "include": "#writer" },
     { "include": "#class" },
     { "include": "#data" },
+    { "include": "#getCall" },
     { "include": "#functionCall" },
     { "include": "#functions" }
   ],
@@ -65,8 +66,8 @@
     },
     "comments": {
       "patterns": [
-        { 
-          "name": "comment.line.number-sign.abl", 
+        {
+          "name": "comment.line.number-sign.abl",
           "match": "(?<=^|\\s|>\\+\\|\\+<|<)#.*$"
         }
       ]
@@ -79,7 +80,7 @@
     "index": {
       "patterns": [
         {
-          "name": "variable.other.index.abl", 
+          "name": "variable.other.index.abl",
           "match": "%[A-Za-z][A-Za-z0-9]*(?=[^A-Za-z0-9]|$)"
         }
       ]
@@ -116,6 +117,14 @@
         }
       ]
     },
+    "getCall": {
+      "patterns": [
+        {
+          "name": "keyword.other.assignment",
+          "match": "(?<![A-Za-z0-9_])@Get\\([A-Za-z_][A-Za-z0-9_]*\\)"
+        }
+      ]
+    },
     "mapCall": {
       "patterns": [
         {
@@ -130,21 +139,23 @@
             "0": { "name": "support.class.map" }
           },
           "patterns": [
+            { "include": "#getCall" },
+            { "include": "#functionCall" },
             {
               "name": "support.class.map",
-              "match": "(?<=[A-Za-z0-9_])@"
+              "match": "(?<=[A-Za-z0-9_])@(?!Get\\b)(?!Set\\b)"
             },
             {
               "name": "support.class.map",
-              "match": "@(?=\\s*[(),\\]\\|'\"])"
+              "match": "@(?!Get\\b)(?!Set\\b)(?=\\s*[(),\\]\\|'\"])"
             },
             {
               "name": "support.class.map",
-              "match": "(?<=[),\\]\\|'\"!])@"
+              "match": "(?<=[),\\]\\|'\"!])@(?!Get\\b)(?!Set\\b)"
             },
             {
               "name": "support.class.map",
-              "match": "(?<=!)@"
+              "match": "(?<=!)@(?!Get\\b)(?!Set\\b)"
             },
             { "include": "#class" },
             { "include": "#data" },
@@ -214,7 +225,7 @@
       "patterns": [
         {
           "name": "meta.function-call.abl",
-          "begin": "(?<![A-Za-z0-9_])@(?!Map\\.)(?!Data\\b)(?!Base\\b)(?!AddLine\\b)(?!AddLinePrespace\\b)(?!InsertLine\\b)(?!InsertLinePrespace\\b)([A-Za-z_][A-Za-z0-9_]*)@?\\s*@?\\(",
+          "begin": "(?<![A-Za-z0-9_])@(?!Map\\.)(?!Get\\b)(?!Set\\b)(?!Data\\b)(?!Base\\b)(?!AddLine\\b)(?!AddLinePrespace\\b)(?!InsertLine\\b)(?!InsertLinePrespace\\b)([A-Za-z_][A-Za-z0-9_]*)@?\\s*@?\\(",
           "beginCaptures": {
             "0": { "name": "support.function" }
           },
@@ -224,21 +235,24 @@
             "0": { "name": "support.function" }
           },
           "patterns": [
+            { "include": "#getCall" },
+            { "include": "#mapCall" },
+            { "include": "#functionCall" },
             {
               "name": "support.function",
-              "match": "(?<=[A-Za-z0-9_])@"
+              "match": "(?<=[A-Za-z0-9_])@(?!Get\\b)(?!Set\\b)"
             },
             {
               "name": "support.function",
-              "match": "@(?=\\s*[(),\\]\\|'\"])"
+              "match": "@(?!Get\\b)(?!Set\\b)(?=\\s*[(),\\]\\|'\"])"
             },
             {
               "name": "support.function",
-              "match": "(?<=[),\\]\\|'\"!])@"
+              "match": "(?<=[),\\]\\|'\"!])@(?!Get\\b)(?!Set\\b)"
             },
             {
               "name": "support.function",
-              "match": "(?<=!)@"
+              "match": "(?<=!)@(?!Get\\b)(?!Set\\b)"
             },
             { "include": "#numbers" },
             { "include": "#index" },
