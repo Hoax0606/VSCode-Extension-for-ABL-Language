@@ -124,8 +124,11 @@
     "getCall": {
       "patterns": [
         {
-          "name": "keyword.other.assignment",
-          "match": "(?<![A-Za-z0-9_])@Get\\([A-Za-z_][A-Za-z0-9_]*\\)"
+          "match": "(?<![A-Za-z0-9_])(@Get\\()([A-Za-z_][A-Za-z0-9_]*)(\\))",
+          "captures": {
+            "1": { "name": "keyword.other.assignment" },
+            "3": { "name": "keyword.other.assignment" }
+          }
         }
       ]
     },
