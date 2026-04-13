@@ -39,6 +39,7 @@
     { "include": "#numbers" },
     { "include": "#index" },
     { "include": "#control" },
+    { "include": "#getCall" },
     { "include": "#assignment" },
     { "include": "#types" },
     { "include": "#ablConstants" },
@@ -47,7 +48,6 @@
     { "include": "#writer" },
     { "include": "#class" },
     { "include": "#data" },
-    { "include": "#getCall" },
     { "include": "#functionCall" },
     { "include": "#functions" }
   ],
@@ -109,7 +109,7 @@
       "patterns": [
         {
           "name": "keyword.other.assignment",
-          "match": "(?<![A-Za-z0-9_])@(Get|Set)(?![A-Za-z0-9_])"
+          "match": "(?<![A-Za-z0-9_])@Set(?![A-Za-z0-9_])"
         }
       ]
     },
@@ -124,18 +124,21 @@
     "getCall": {
       "patterns": [
         {
-          "match": "(?<![A-Za-z0-9_])(@Get\\()([A-Za-z_][A-Za-z0-9_]*)(\\))",
-          "captures": {
-            "1": { "name": "keyword.other.assignment" },
-            "3": { "name": "keyword.other.assignment" }
-          }
+          "begin": "(?<![A-Za-z0-9_])(@Get)(\\()",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.assignment" }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": { "name": "keyword.other.assignment" }
+          },
+          "patterns": []
         }
       ]
     },
     "mapCall": {
       "patterns": [
         {
-          "name": "meta.function-call.map.abl",
           "begin": "(?<![A-Za-z0-9_])@Map\\.(Get|Set)@?\\s*@?\\(",
           "beginCaptures": {
             "0": { "name": "support.class.map" }
@@ -231,7 +234,6 @@
     "functionCall": {
       "patterns": [
         {
-          "name": "meta.function-call.abl",
           "begin": "(?<![A-Za-z0-9_])@(?!Map\\.)(?!Get\\b)(?!Set\\b)(?!Data\\b)(?!Base\\b)(?!AddLine\\b)(?!AddLinePrespace\\b)(?!InsertLine\\b)(?!InsertLinePrespace\\b)([A-Za-z_][A-Za-z0-9_]*)@?\\s*@?\\(",
           "beginCaptures": {
             "0": { "name": "support.function" }
