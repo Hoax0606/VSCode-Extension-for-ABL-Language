@@ -2606,6 +2606,11 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerTextEditorCommand('abl.addRuleStored', (editor) => insertRuleSnippet(editor, 'Stored'))
   );
 
+  // 커맨드 팔레트에서 수동으로 업데이트 확인
+  context.subscriptions.push(
+    vscode.commands.registerCommand('abl.checkForUpdates', () => checkGitHubForUpdates(context, true))
+  );
+
   // ============================================================
   // Run On Save (SmartBridge DB 연동)
   // ============================================================
@@ -2648,28 +2653,40 @@ export function activate(context: vscode.ExtensionContext) {
 // ====================================================================
 // GitHub Release Auto-Update Check & Install Function
 // ====================================================================
-function checkGitHubForUpdates(context: vscode.ExtensionContext) {
+function checkGitHubForUpdates(context: vscode.ExtensionContext, manual = false) {
     const currentVersion = context.extension.packageJSON.version;
-    
+
     // 💡 선배님의 실제 GitHub 주소 세팅 완료!
-    const repoPath = "Hoax0606/VSCode-Extension-for-ABL-Language"; 
-    
+    const repoPath = "Hoax0606/VSCode-Extension-for-ABL-Language";
+
     // API URL 자동 완성 (이 부분은 건드릴 필요 없습니다!)
     const apiUrl = `https://api.github.com/repos/${repoPath}/releases/latest`;
 
+    // 수동 실행(커맨드 팔레트)일 때만 진행 표시
+    if (manual) {
+        vscode.window.setStatusBarMessage('$(sync~spin) Checking for updates...', 5000);
+    }
+
     exec(`curl -s "${apiUrl}"`, (err, stdout) => {
-        if (err) return;
+        if (err) {
+            // 자동 실행은 조용히 스킵, 수동 실행은 실패를 알림
+            if (manual) vscode.window.showErrorMessage(`[Update Check Failed] ${err.message}`);
+            return;
+        }
 
         // JSON 응답에서 버전(태그)과 다운로드 링크 추출
         const tagMatch = stdout.match(/"tag_name":\s*"v?([^"]+)"/);
         const assetMatch = stdout.match(/"browser_download_url":\s*"([^"]+\.vsix)"/);
 
-        // 릴리즈나 파일이 없으면 조용히 스킵
-        if (!tagMatch || !assetMatch) return; 
+        // 릴리즈나 파일이 없으면: 자동은 조용히, 수동은 알림
+        if (!tagMatch || !assetMatch) {
+            if (manual) vscode.window.showWarningMessage('[Update Check] 릴리스 정보를 찾을 수 없습니다.');
+            return;
+        }
 
-        const latestVersion = tagMatch[1]; 
-        const vsixUrl = assetMatch[1];     
-        
+        const latestVersion = tagMatch[1];
+        const vsixUrl = assetMatch[1];
+
         if (currentVersion !== latestVersion) {
             vscode.window.showInformationMessage(
                 `🚀 A new version of SmartBridge (v${latestVersion}) has been released!\nWould you like to update now?`, 
@@ -2702,6 +2719,9 @@ function checkGitHubForUpdates(context: vscode.ExtensionContext) {
                     });
                 }
             });
+        } else if (manual) {
+            // 이미 최신 버전: 수동 실행일 때만 안내
+            vscode.window.showInformationMessage(`✅ 이미 최신 버전입니다. (v${currentVersion})`);
         }
     });
 }

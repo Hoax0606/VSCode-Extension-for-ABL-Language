@@ -52,7 +52,8 @@
       { "command": "abl.addRuleGeneral", "title": "ABL: Add New Rule" },
       { "command": "abl.addRulePre", "title": "ABL: Add Preprocessing" },
       { "command": "abl.addRulePost", "title": "ABL: Add Postprocessing" },
-      { "command": "abl.addRuleStored", "title": "ABL: Add User Function" }
+      { "command": "abl.addRuleStored", "title": "ABL: Add User Function" },
+      { "command": "abl.checkForUpdates", "title": "Check for Updates", "category": "ABL SmartBridge" }
     ],
     "languages": [
       {
