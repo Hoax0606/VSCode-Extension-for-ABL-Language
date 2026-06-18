@@ -2481,12 +2481,29 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // 시맨틱 토큰 강제 갱신용 이벤트.
+  // 확장 활성화가 최초 토큰화보다 늦거나, 설정/테마가 늦게 적용될 때
+  // 이미 열린 .abl 문서가 stale(옛 색)로 남는 race를 막는다.
+  const semanticTokensChanged = new vscode.EventEmitter<void>();
+  context.subscriptions.push(semanticTokensChanged);
+
   context.subscriptions.push(
     vscode.languages.registerDocumentSemanticTokensProvider(
       { language: 'abl' },
-      { provideDocumentSemanticTokens: provideTokens },
+      {
+        onDidChangeSemanticTokens: semanticTokensChanged.event,
+        provideDocumentSemanticTokens: provideTokens
+      },
       legend
     )
+  );
+
+  // B: 활성화 직후 이미 열린 문서 강제 재색칠 (다음 tick으로 미뤄 VSCode가 이벤트 구독을 마친 뒤 fire)
+  setTimeout(() => semanticTokensChanged.fire(), 0);
+
+  // 색 테마가 바뀌면 시맨틱 색을 다시 계산하도록 갱신
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveColorTheme(() => semanticTokensChanged.fire())
   );
 
   context.subscriptions.push(

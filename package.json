@@ -2,7 +2,7 @@
   "name": "abl-language",
   "displayName": "abl-language",
   "description": "ABL language support for VS Code",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "hoax0606",
   "icon": "images/VSCode_ABL_Extension_Icon_rounded_square.png",
   "license": "MIT",
@@ -22,7 +22,8 @@
     "Programming Languages"
   ],
   "activationEvents": [
-    "onLanguage:abl"
+    "onLanguage:abl",
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -71,15 +72,15 @@
     "configurationDefaults": {
       "editor.semanticTokenColorCustomizations": {
         "rules": {
-          "ablMap": "#FFB347",
-          "ablFunc": "#f1fa8c",
-          "ablLogic": "#f8c57c",
-          "ablData": "#9CDCFE",
-          "ablOperator": "#FFFFFF",
-          "ablFunctionDecl": "#957DAD",
-          "ablFunctionEnd": "#957DAD",
-          "ablFunctionCall": "#61AFEF",
-          "ablReturn": "#61AFEF"
+          "ablMap": { "foreground": "#FFB347", "italic": false, "bold": false, "underline": false },
+          "ablFunc": { "foreground": "#f1fa8c", "italic": false, "bold": false, "underline": false },
+          "ablLogic": { "foreground": "#f8c57c", "italic": false, "bold": false, "underline": false },
+          "ablData": { "foreground": "#9CDCFE", "italic": false, "bold": false, "underline": false },
+          "ablOperator": { "foreground": "#FFFFFF", "italic": false, "bold": false, "underline": false },
+          "ablFunctionDecl": { "foreground": "#957DAD", "italic": false, "bold": false, "underline": false },
+          "ablFunctionEnd": { "foreground": "#957DAD", "italic": false, "bold": false, "underline": false },
+          "ablFunctionCall": { "foreground": "#61AFEF", "italic": false, "bold": false, "underline": false },
+          "ablReturn": { "foreground": "#61AFEF", "italic": false, "bold": false, "underline": false }
         }
       },
       "editor.tokenColorCustomizations": {
@@ -102,39 +103,39 @@
           },
           {
             "scope": ["constant.language.boolean.abl", "constant.language.nullish.abl"],
-            "settings": { "foreground": "#50fa7b" }
+            "settings": { "foreground": "#50fa7b", "fontStyle": "" }
           },
           {
             "scope": "constant.numeric.abl",
-            "settings": { "foreground": "#B5CEA8" }
+            "settings": { "foreground": "#B5CEA8", "fontStyle": "" }
           },
           {
             "scope": "variable.other.index.abl",
-            "settings": { "foreground": "#bd93f9" }
+            "settings": { "foreground": "#bd93f9", "fontStyle": "" }
           },
           {
             "scope": "keyword.control",
-            "settings": { "foreground": "#ff79c6" }
+            "settings": { "foreground": "#ff79c6", "fontStyle": "" }
           },
           {
             "scope": ["keyword.other.assignment", "support.class.map"],
-            "settings": { "foreground": "#FFB347" }
+            "settings": { "foreground": "#FFB347", "fontStyle": "" }
           },
           {
             "scope": "storage.type.abl",
-            "settings": { "foreground": "#8Be9fd" }
+            "settings": { "foreground": "#8Be9fd", "fontStyle": "" }
           },
           {
             "scope": "support.function.writer",
-            "settings": { "foreground": "#FF8B94" }
+            "settings": { "foreground": "#FF8B94", "fontStyle": "" }
           },
           {
             "scope": ["support.class.token", "support.class.meta", "variable.other.property.token", "variable.other.property.meta", "keyword.operator.reference"],
-            "settings": { "foreground": "#9CDCFE" }
+            "settings": { "foreground": "#9CDCFE", "fontStyle": "" }
           },
           {
             "scope": "support.function",
-            "settings": { "foreground": "#f1fa8c" }
+            "settings": { "foreground": "#f1fa8c", "fontStyle": "" }
           }
         ]
       }
