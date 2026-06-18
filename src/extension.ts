@@ -586,69 +586,53 @@ function withReplaceRange(
 
 function buildDeclaredVarItemsAt(doc: vscode.TextDocument, pos: vscode.Position): vscode.CompletionItem[] {
   const declReLocal = /^\s*@(String|Int)\s+([A-Za-z_][A-Za-z0-9_]*)\b/i;
-  const fnStartReLocal = /^\s*@Function\b/i;
-  const fnEndReLocal = /^\s*@End\s+Function\b/i;
   const fnNameReLocal = /^\s*@Function\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)/i;
   const fnParamsReLocal = /^\s*@Function\b.*?\(([^)]*)\)/i;
 
-  const lineToFunc = buildFuncLineMap(doc);
-  const curFuncId = lineToFunc[pos.line];
+  // 변수 스코프 모델과 동일하게: 현재 커서가 속한 스코프(Rule 블록 또는 Stored 내 함수)의
+  // 변수만 후보로 제공한다. 전역 변수는 없다(Map 제외).
+  const { lineToScope, scopeKind } = buildScopeMap(doc);
+  const curScope = lineToScope[pos.line];
+  if (curScope === -1) return []; // 블록 밖 / Stored 함수 밖
 
-  const globalDeclared = new Set<string>();
-  const localDeclared = new Set<string>();
+  const declared = new Set<string>();
 
   for (let line = 0; line <= pos.line; line++) {
+    if (lineToScope[line] !== curScope) continue; // 같은 스코프 라인만
+
     let raw = doc.lineAt(line).text;
     if (line === pos.line) raw = raw.slice(0, pos.character);
 
     if (!raw.trim()) continue;
     if (isCommentLine(raw)) continue;
 
-    const funcId = lineToFunc[line]; 
-
-    if (fnStartReLocal.test(raw)) {
-      const fm = fnNameReLocal.exec(raw);
-      if (fm && funcId !== -1 && funcId === curFuncId) {
-        localDeclared.add(fm[1]);
-
-        const pm = fnParamsReLocal.exec(raw);
-        const params = pm?.[1]?.trim();
-        if (params) {
-          for (const token of params.split(',')) {
-            const name = token.trim();
-            if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) localDeclared.add(name);
-          }
+    const fm = fnNameReLocal.exec(raw);
+    if (fm) {
+      declared.add(fm[1]);
+      const pm = fnParamsReLocal.exec(raw);
+      const params = pm?.[1]?.trim();
+      if (params) {
+        for (const token of params.split(',')) {
+          const name = token.trim();
+          if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) declared.add(name);
         }
       }
       continue;
     }
 
-    if (fnEndReLocal.test(raw)) continue;
-
     const dm = declReLocal.exec(raw);
     if (dm) {
-      const varName = dm[2];
-      if (funcId === -1) {
-        globalDeclared.add(varName);
-      } else if (funcId === curFuncId) {
-        localDeclared.add(varName);
-      }
+      declared.add(dm[2]);
       continue;
     }
   }
 
-  const merged = new Set<string>();
-  if (curFuncId === -1) {
-    for (const v of globalDeclared) merged.add(v);
-  } else {
-    for (const v of globalDeclared) merged.add(v);
-    for (const v of localDeclared) merged.add(v);
-  }
+  const detail = scopeKind.get(curScope) === 'func' ? 'Local Variable' : 'Rule Variable';
 
   const items: vscode.CompletionItem[] = [];
-  for (const name of Array.from(merged).sort((a, b) => a.localeCompare(b))) {
+  for (const name of Array.from(declared).sort((a, b) => a.localeCompare(b))) {
     const it = new vscode.CompletionItem(name, vscode.CompletionItemKind.Variable);
-    it.detail = curFuncId === -1 ? 'Global Variable' : (localDeclared.has(name) ? 'Local Variable' : 'Global Variable');
+    it.detail = detail;
     it.sortText = `a_var_${name.toLowerCase()}`;
     it.insertText = name;
     items.push(it);
@@ -1848,6 +1832,91 @@ const fnEndRe = /^\s*@End\s+Function\b/i;
 const fnNameRe = /^\s*@Function\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)/i;
 const fnParamsRe = /^\s*@Function\b.*?\(([^)]*)\)/i;
 
+// Rule 블록 경계 마커
+//  - 시작: General(AnyFile>+|+<...) / 특수([System]>+|+<Pre|Post|Stored>...)
+//  - 끝  : MMC1 End Rule|Site Data MMC1
+const ruleBlockStartRe = /^(?:AnyFile|\[System\])>\+\|\+</;
+const ruleBlockStoredRe = /^\[System\]>\+\|\+<Stored>/;
+const ruleBlockEndRe = /^MMC1 End (?:Rule|Site) Data MMC1/;
+
+/**
+ * 변수 스코프 모델 (매우 중요)
+ * - 일반 변수(@String/@Int)는 전역이 없다. 오직 Map(@Map.*)만 전역.
+ * - General / Pre / Post Rule 블록: 그 블록 전체가 하나의 지역 스코프.
+ * - Stored(User Function) Rule 블록: 그 안의 각 @Function 이 각각 별도의 지역 스코프.
+ *   (Stored 안에는 함수 밖 코드가 존재하지 않는다고 가정)
+ * - Rule 블록에 속하지 않은 라인은 스코프가 없다(-1) → 변수 진단 제외.
+ *
+ * 반환:
+ *  - lineToScope[line] : 해당 라인이 속한 스코프 id (없으면 -1)
+ *  - scopeKind        : 스코프 id -> 'rule' | 'func'
+ */
+type ScopeKind = 'rule' | 'func';
+function buildScopeMap(doc: vscode.TextDocument): { lineToScope: number[]; scopeKind: Map<number, ScopeKind> } {
+  const lineToScope = new Array<number>(doc.lineCount).fill(-1);
+  const scopeKind = new Map<number, ScopeKind>();
+
+  let nextId = 0;
+  let inBlock = false;
+  let isStored = false;
+  let inFunc = false;
+  let currentScope = -1;
+
+  for (let line = 0; line < doc.lineCount; line++) {
+    const raw = doc.lineAt(line).text;
+
+    // 블록 끝: End 라인 자체는 스코프 밖
+    if (ruleBlockEndRe.test(raw)) {
+      inBlock = false;
+      isStored = false;
+      inFunc = false;
+      currentScope = -1;
+      continue;
+    }
+
+    // 블록 시작
+    if (ruleBlockStartRe.test(raw)) {
+      inBlock = true;
+      isStored = ruleBlockStoredRe.test(raw);
+      inFunc = false;
+      if (isStored) {
+        // Stored 헤더~첫 @Function 사이는 스코프 없음
+        currentScope = -1;
+      } else {
+        // General/Pre/Post = 블록 전체가 하나의 지역 스코프
+        currentScope = nextId++;
+        scopeKind.set(currentScope, 'rule');
+        lineToScope[line] = currentScope;
+      }
+      continue;
+    }
+
+    if (!inBlock) continue; // 블록 밖 라인 무시
+
+    if (isStored) {
+      if (fnStartRe.test(raw)) {
+        inFunc = true;
+        currentScope = nextId++;
+        scopeKind.set(currentScope, 'func');
+        lineToScope[line] = currentScope;
+        continue;
+      }
+      if (fnEndRe.test(raw)) {
+        lineToScope[line] = inFunc ? currentScope : -1;
+        inFunc = false;
+        currentScope = -1;
+        continue;
+      }
+      lineToScope[line] = inFunc ? currentScope : -1;
+    } else {
+      // General/Pre/Post 블록 본문
+      lineToScope[line] = currentScope;
+    }
+  }
+
+  return { lineToScope, scopeKind };
+}
+
 function maskStringLiterals(line: string): string {
   let out = '';
   let inQ = false;
@@ -1924,16 +1993,16 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
   if (doc.languageId !== 'abl') return;
 
   const diagnostics: vscode.Diagnostic[] = [];
-  const lineToFunc = buildFuncLineMap(doc);
+  const { lineToScope, scopeKind } = buildScopeMap(doc);
 
-  const globalDeclared = new Set<string>();
-  const localDeclaredByFunc = new Map<number, Set<string>>();
+  // 스코프 id -> 그 스코프 안에서 (위에서 아래로) 선언된 변수 집합
+  const declaredByScope = new Map<number, Set<string>>();
 
-  const getLocalSet = (funcId: number) => {
-    let s = localDeclaredByFunc.get(funcId);
+  const getScopeSet = (scopeId: number) => {
+    let s = declaredByScope.get(scopeId);
     if (!s) {
       s = new Set<string>();
-      localDeclaredByFunc.set(funcId, s);
+      declaredByScope.set(scopeId, s);
     }
     return s;
   };
@@ -1943,25 +2012,27 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
     if (!raw.trim()) continue;
     if (isCommentLine(raw)) continue;
 
-    const funcId = lineToFunc[line]; 
+    const scopeId = lineToScope[line];
+    const isFuncScope = scopeId !== -1 && scopeKind.get(scopeId) === 'func';
     const text = maskStringLiterals(raw);
 
+    // @Function 선언 라인: 함수명 + 파라미터를 그 함수 스코프에 등록
     fnNameRe.lastIndex = 0;
     const fm = fnNameRe.exec(text);
     if (fm) {
       const funcName = fm[1];
-      if (funcId !== -1) {
-        const local = getLocalSet(funcId);
-        local.add(funcName);
+      if (scopeId !== -1) {
+        const scope = getScopeSet(scopeId);
+        scope.add(funcName);
         fnParamsRe.lastIndex = 0;
         const pm = fnParamsRe.exec(text);
         if (pm) {
-          const rawParams = pm[1].trim(); 
+          const rawParams = pm[1].trim();
           if (rawParams.length > 0) {
             for (const token of rawParams.split(',')) {
               const name = token.trim();
               if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
-                local.add(name);
+                scope.add(name);
               }
             }
           }
@@ -1969,6 +2040,9 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
       }
       continue;
     }
+
+    // 스코프 밖(블록 밖 / Stored 함수 밖) 라인은 변수 진단 대상이 아님
+    if (scopeId === -1) continue;
 
     declRe.lastIndex = 0;
     const dm = declRe.exec(text);
@@ -1978,31 +2052,16 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
       const start = raw.indexOf(varName, atIdx >= 0 ? atIdx : 0);
       const end = start >= 0 ? start + varName.length : raw.length;
 
-      if (funcId === -1) {
-        if (globalDeclared.has(varName)) {
-          diagnostics.push(new vscode.Diagnostic(new vscode.Range(line, start, line, end), `이미 전역에서 선언된 변수입니다: ${varName}`, vscode.DiagnosticSeverity.Error));
-        } else {
-          globalDeclared.add(varName);
-        }
+      const scope = getScopeSet(scopeId);
+      if (scope.has(varName)) {
+        diagnostics.push(new vscode.Diagnostic(new vscode.Range(line, start, line, end), isFuncScope ? `이미 이 Function 안에서 선언된 변수입니다: ${varName}` : `이미 이 Rule 안에서 선언된 변수입니다: ${varName}`, vscode.DiagnosticSeverity.Error));
       } else {
-        const local = getLocalSet(funcId);
-        if (local.has(varName)) {
-          diagnostics.push(new vscode.Diagnostic(new vscode.Range(line, start, line, end), `이미 Function 내에서 선언된 변수입니다: ${varName}`, vscode.DiagnosticSeverity.Error));
-        } else {
-          local.add(varName);
-        }
+        scope.add(varName);
       }
-      continue; 
+      continue;
     }
 
-    const allowedInThisLine = (name: string) => {
-      if (funcId === -1) {
-        return globalDeclared.has(name);
-      } else {
-        const local = getLocalSet(funcId);
-        return local.has(name) || globalDeclared.has(name);
-      }
-    };
+    const allowedInThisLine = (name: string) => getScopeSet(scopeId).has(name);
 
     setUseRe.lastIndex = 0;
     for (let m; (m = setUseRe.exec(text)); ) {
@@ -2010,7 +2069,7 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
       if (!allowedInThisLine(name)) {
         const start = m.index + m[0].lastIndexOf(name);
         const end = start + name.length;
-        diagnostics.push(new vscode.Diagnostic(new vscode.Range(line, start, line, end), funcId === -1 ? `전역 영역에서 선언되지 않은 변수입니다: ${name}` : `Function/전역 어디에도 선언되지 않은 변수입니다: ${name}`, vscode.DiagnosticSeverity.Error));
+        diagnostics.push(new vscode.Diagnostic(new vscode.Range(line, start, line, end), isFuncScope ? `이 Function 안에서 선언되지 않은 변수입니다: ${name}` : `이 Rule 안에서 선언되지 않은 변수입니다: ${name}`, vscode.DiagnosticSeverity.Error));
       }
     }
 
@@ -2028,7 +2087,7 @@ function provideUndeclaredVarDiagnostics(doc: vscode.TextDocument) {
       }
 
       if (!allowedInThisLine(arg)) {
-        diagnostics.push(new vscode.Diagnostic(argRange, funcId === -1 ? `전역 영역에서 선언되지 않은 변수입니다: ${arg}` : `Function/전역 어디에도 선언되지 않은 변수입니다: ${arg}`, vscode.DiagnosticSeverity.Error));
+        diagnostics.push(new vscode.Diagnostic(argRange, isFuncScope ? `이 Function 안에서 선언되지 않은 변수입니다: ${arg}` : `이 Rule 안에서 선언되지 않은 변수입니다: ${arg}`, vscode.DiagnosticSeverity.Error));
       }
     }
 
