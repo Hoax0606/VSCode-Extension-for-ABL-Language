@@ -13,6 +13,15 @@
       "match": ">\\+\\|\\+<"
     },
     {
+      "comment": "Rule 헤더의 Sequence(숫자) + Use 플래그(Y/N) — 룰 이름/설명과 같은 색으로. line.number 규칙보다 먼저 와야 함",
+      "match": "(?<=>\\+\\|\\+<)(\\d+)(>\\+\\|\\+<)([YN])(?=>\\+\\|\\+<)",
+      "captures": {
+        "1": { "name": "entity.name.rule.abl" },
+        "2": { "name": "comment.punctuation.separator.abl" },
+        "3": { "name": "entity.name.rule.abl" }
+      }
+    },
+    {
       "name": "comment.line.number.abl",
       "match": "(?<=>\\+\\|\\+<)\\s*\\d+\\s*(?=>\\+\\|\\+<|\\r?\\n|$)|<\\d+(?=>|$)"
     },
@@ -29,8 +38,9 @@
       "match": "(?<=Partial Support>\\+\\|\\+<Partial Support>\\+\\|\\+<)(.*?)(?=>\\+\\|\\+<)"
     },
     {
+      "comment": "헤더 시작 키워드(AnyFile / [System])만 메타색. 그 외 줄 시작 텍스트(룰 로직)는 일반 토큰화되도록 둠",
       "name": "comment.metadata.abl",
-      "match": "^(?!\\s*[@#]|MMC1\\b).+?(?=>\\+\\|\\+<)"
+      "match": "^(?:AnyFile|\\[System\\])(?=>\\+\\|\\+<)"
     },
     {
       "name": "comment.metadata.abl",
