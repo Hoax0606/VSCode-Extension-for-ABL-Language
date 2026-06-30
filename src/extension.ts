@@ -720,12 +720,48 @@ function completionsAtWithUserFunctions(doc: vscode.TextDocument): vscode.Comple
   return [...COMPLETIONS_AT, ...user];
 }
 
+/**
+ * 파일 전체에서 @Map.Set@(KEY@,...) 의 KEY 들을 수집한다.
+ * Map은 전역이므로 파일 안에서 등록된 모든 키를 @Map.Get@( 자동완성 후보로 쓴다.
+ */
+function buildMapKeyItems(doc: vscode.TextDocument): vscode.CompletionItem[] {
+  const keys = new Set<string>();
+  const re = /@Map\.Set@?\s*@?\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*@?\s*,/gi;
+
+  for (let line = 0; line < doc.lineCount; line++) {
+    const text = doc.lineAt(line).text;
+    if (isCommentLine(text)) continue;
+    re.lastIndex = 0;
+    for (let m; (m = re.exec(text)); ) keys.add(m[1]);
+  }
+
+  const items: vscode.CompletionItem[] = [];
+  for (const k of Array.from(keys).sort((a, b) => a.localeCompare(b))) {
+    const it = new vscode.CompletionItem(k, vscode.CompletionItemKind.Value);
+    it.detail = 'Map Key';
+    it.insertText = k;
+    it.sortText = `a_mapkey_${k.toLowerCase()}`;
+    items.push(it);
+  }
+  return items;
+}
+
 const completionProvider: vscode.CompletionItemProvider = {
   provideCompletionItems(doc, pos) {
     if (doc.languageId !== 'abl') return undefined;
 
     const lineText = doc.lineAt(pos.line).text;
     const before = lineText.slice(0, pos.character);
+
+    // @Map.Get@( 의 첫 인자 위치: 파일에 등록된 Map 키 제안
+    {
+      const m = /@Map\.Get@?\s*@?\(\s*([A-Za-z0-9_]*)$/i.exec(before);
+      if (m) {
+        const prefix = m[1] ?? '';
+        const replaceFromChar = pos.character - prefix.length;
+        return withReplaceRange(buildMapKeyItems(doc), doc, pos, replaceFromChar);
+      }
+    }
 
     {
       const m = /@Get\s*\(\s*([A-Za-z0-9_]*)$/i.exec(before);
@@ -2184,6 +2220,20 @@ function provideIfDiagnostics(doc: vscode.TextDocument) {
     const text = doc.lineAt(line).text;
     if (isCommentLine(text)) continue;
 
+    // Rule 블록 경계: 블록을 넘어가는 @If/@Function 짝맞춤을 막는다.
+    // (다른 Rule의 @End If/@End Function 과 잘못 매칭되지 않도록 블록마다 스택을 비운다)
+    if (ruleBlockStartRe.test(text) || ruleBlockEndRe.test(text)) {
+      for (const l of ifStack) {
+        diagnostics.push(new vscode.Diagnostic(new vscode.Range(l, 0, l, doc.lineAt(l).text.length), '@If 에 대응되는 @End If 가 없습니다.', vscode.DiagnosticSeverity.Error));
+      }
+      for (const l of funcStack) {
+        diagnostics.push(new vscode.Diagnostic(new vscode.Range(l, 0, l, doc.lineAt(l).text.length), '@Function 에 대응되는 @End Function 이 없습니다.', vscode.DiagnosticSeverity.Error));
+      }
+      ifStack.length = 0;
+      funcStack.length = 0;
+      continue;
+    }
+
     const isIf = /^\s*@If\b/i.test(text);
     const isElseIf = /^\s*@Else\s+If\b/i.test(text);
 
@@ -2250,6 +2300,15 @@ function provideForDiagnostics(doc: vscode.TextDocument, diagnostics: vscode.Dia
   for (let line = 0; line < doc.lineCount; line++) {
     const text = doc.lineAt(line).text;
     if (isCommentLine(text)) continue;
+
+    // Rule 블록 경계: 블록을 넘어가는 @For 짝맞춤 방지 (블록마다 스택 비움)
+    if (ruleBlockStartRe.test(text) || ruleBlockEndRe.test(text)) {
+      for (const l of forStack) {
+        diagnostics.push(new vscode.Diagnostic(new vscode.Range(l, 0, l, doc.lineAt(l).text.length), '@For 에 대응되는 @End For 가 없습니다.', vscode.DiagnosticSeverity.Error));
+      }
+      forStack.length = 0;
+      continue;
+    }
 
     if (/^\s*@For\b/i.test(text)) {
       forStack.push(line);
@@ -2596,7 +2655,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.languages.registerCompletionItemProvider({ language: 'abl' }, completionProvider, '@', '^', '.')
+    vscode.languages.registerCompletionItemProvider({ language: 'abl' }, completionProvider, '@', '^', '.', '(')
   );
 
   context.subscriptions.push(
@@ -2616,8 +2675,10 @@ export function activate(context: vscode.ExtensionContext) {
   // ============================================================
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((doc) => {
-      // 1. ABL(.rule) 파일이 아니면 무시
+      // 1. ABL 언어가 아니면 무시
       if (doc.languageId !== 'abl') return;
+      // DB 저장은 .rule 파일에 대해서만 수행 (.abl 등은 제외)
+      if (!doc.fileName.toLowerCase().endsWith('.rule')) return;
 
       // 2. 설정창에서 사용자가 입력한 값 가져오기 (기본값은 우리가 세팅한 값)
       const config = vscode.workspace.getConfiguration('abl.smartBridge');

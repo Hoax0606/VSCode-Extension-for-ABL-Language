@@ -65,12 +65,14 @@
     "ablConstants": {
       "patterns": [
         {
+          "comment": "True/False 만 색칠. 감싸는 작은따옴표는 색을 바꾸지 않음",
           "name": "constant.language.boolean.abl",
-          "match": "(?<![A-Za-z0-9_])'?(?:True|False)'?@?(?![A-Za-z0-9_])"
+          "match": "(?<![A-Za-z0-9_])(?:True|False)@?(?![A-Za-z0-9_])"
         },
         {
+          "comment": "[NULL], [_S_], [_S1_]~[_S4_]. 감싸는 작은따옴표는 색을 바꾸지 않음",
           "name": "constant.language.nullish.abl",
-          "match": "(?<![A-Za-z0-9_])'?\\[(?:NULL|_S_)\\]'?@?(?![A-Za-z0-9_])"
+          "match": "(?<![A-Za-z0-9_])\\[(?:NULL|_S[1-4]?_)\\]@?(?![A-Za-z0-9_])"
         }
       ]
     },
